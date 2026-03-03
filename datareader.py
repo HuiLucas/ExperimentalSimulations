@@ -38,7 +38,7 @@ FIELD_EXPLANATIONS = {
 def add_field(a, name, dtype, value):
     b = np.zeros(a.shape, a.dtype.descr + [(name, dtype)])
     b[list(a.dtype.names)] = a
-    if np.isscalar(value):
+    if np.isscalar(value) or value == None:
         b[name] = value
     else:
         b[name][...] = value
@@ -89,11 +89,17 @@ class loaded_data:
             self.datarr = data_normal_configuration
 
         elif configuration == 'tailoff':
-            data_tailoff = spio.loadmat(data_file)
-            tailOff_windOn = data_tailoff['BAL']['windOn'][0][0]['tailOff_beta0_balance']
-            tailOff_windOff = data_tailoff['BAL']['windOff'][0][0]['tailOff_beta0_balance']
-            data_tailoff = {'windOn': tailOff_windOn, 'windOff': tailOff_windOff}
-            self.datarr = None
+            data_wind_tunnel_test = spio.loadmat(data_file)
+            tailOff_windOn = data_wind_tunnel_test['BAL']['windOn'][0][0]['tailOff_beta0_balance'][0][0]
+            tailOff_windOff = data_wind_tunnel_test['BAL']['windOff'][0][0]['tailOff_beta0_balance'][0][0]
+            prototype_dtype = add_field(add_field(tailOff_windOn, 'elevator_deflection',
+                                                                       np.float64, None), 'wind_condition', 'U10', 'windOn').dtype
+            data_tailoff = np.concatenate([add_field(add_field(tailOff_windOn, 'elevator_deflection',
+                                                                       np.float64, None), 'wind_condition', 'U10', 'windOn'),
+                                         align_dtype(add_field(add_field(tailOff_windOff, 'elevator_deflection'
+                                                                        , np.float64, None), 'wind_condition', 'U10', 'windOff'), prototype_dtype)])
+            data_tailoff.explanations = FIELD_EXPLANATIONS
+            self.datarr = data_tailoff
 
 
 
