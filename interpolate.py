@@ -59,3 +59,47 @@ class interpolate_plots():
 # plt.show()
 
 
+# data=np.loadtxt('tau2.txt',skiprows=2)
+# # y011=interpolate(data[:,0],data[:,2],0.11)
+# # print(y011)
+# plots=interpolate_plots()
+# fig=plt.figure()
+# ax=fig.subplots(1,1)
+# ax.scatter(data[:,0],data[:,1],label=r'$\lambda=0.35\, k=0.6$')
+# ax.scatter(data[:,0],data[:,2],label=r'$\lambda=0.5\, k=0.4,0.5,0.6$')
+# ax.scatter(data[:,0],data[:,3],label=r'$\lambda=0.5\, k=0.7$')
+# ax.scatter(data[:,0],data[:,4],label=r'$\lambda=0.707\, k=0.6$')
+# ax.scatter(data[:,0],data[:,5],label=r'$\lambda=1.0 \,k=0.4,0.5$')
+# ax.scatter(data[:,0],data[:,6],label=r'$\lambda=1.0 \,k=0.6$')
+# ax.scatter(data[:,0],data[:,7],label=r'$\lambda=1.0 \,k=0.7$')
+
+# # ax.scatter(data[:,0],data[:,7],label=f'K3')
+# # ax.vlines(0.11,0.9,1.05)
+# # ax.scatter(0.11,plots.get_K3(0.11),c='yellow')
+# ax.legend()
+# ax.grid()
+# plt.show()
+
+
+data=np.loadtxt('delta.txt',skiprows=1)
+# y011=interpolate(data[:,0],data[:,2],0.11)
+# print(y011)
+plots=interpolate_plots()
+fig=plt.figure()
+ax=fig.subplots(1,1)
+ax.scatter(data[:,0],data[:,1],label=r'$\lambda=0.1$')
+ax.scatter(data[:,0],data[:,2],label=r'$\lambda=0.5$')
+ax.scatter(data[:,0],data[:,3],label=r'$\lambda=0.9$')
+ax.scatter(data[:,0],data[:,4],label=r'$\lambda=0.6$')
+ax.scatter(data[:,0],data[:,5],label=r'$\lambda=0.8$')
+ax.scatter(data[:,0],data[:,6],label=r'$\lambda=0.7$')
+
+
+# ax.scatter(data[:,0],data[:,7],label=f'K3')
+# ax.vlines(0.11,0.9,1.05)
+# ax.scatter(0.11,plots.get_K3(0.11),c='yellow')
+ax.legend()
+ax.grid()
+plt.show()
+
+
