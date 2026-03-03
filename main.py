@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import scipy.io as spio
-data = spio.loadmat('data_corrected_by_matlab.mat')
+data_wind_tunnel_test = spio.loadmat('tailon.mat')
+data_tailoff = spio.loadmat('tailoff.mat')
 
 import numpy as np
 def add_field(a, name, dtype, value):
@@ -9,25 +10,34 @@ def add_field(a, name, dtype, value):
     b[name] = value
     return b
 
-windOn = data['BAL']['windOn'][0][0]
-windOff = data['BAL']['windOff'][0][0]
-config = data['BAL']['config'][0][0]
+windOn = data_wind_tunnel_test['BAL']['windOn'][0][0]
+windOff = data_wind_tunnel_test['BAL']['windOff'][0][0]
+config = data_wind_tunnel_test['BAL']['config'][0][0]
 
-data = {'elev0': add_field(windOn[0][0]['G31_d0'], 'elevator_deflection',
-                            np.float64, 0),
-        'elev_n10': add_field(windOn[0][0]['G31_de_n10'], 'elevator_deflection',
-                            np.float64, -10),
-        'elev_20': add_field(windOn[0][0]['G31_de_20'], 'elevator_deflection',
-                            np.float64, 20),
-        'elev_10': add_field(windOn[0][0]['G31_den10'], 'elevator_deflection',
-                            np.float64, 10),
-        'elev_n20': add_field(windOn[0][0]['G31_de_n20'] , 'elevator_deflection',
-                            np.float64, -20),
-        }
+data_normal_configuration = {'elev0': {'windOn': add_field(windOn[0][0]['G31_d0'], 'elevator_deflection',
+                                                np.float64, 0), 'windOff': add_field(windOff[0][0]['G31_d0'], 'elevator_deflection'
+                                       , np.float64, 0)},
+        'elev_n10': {'windOn': add_field(windOn[0][0]['G31_de_n10'], 'elevator_deflection',
+                            np.float64, -10) , 'windOff': add_field(windOff[0][0]['G31_de_n10'], 'elevator_deflection',
+                                       np.float64, -10)},
+        'elev_20': {'windOn': add_field(windOn[0][0]['G31_de_20'], 'elevator_deflection',
+                            np.float64, 20) , 'windOff': add_field(windOff[0][0]['G31_de_20'], 'elevator_deflection',
+                                       np.float64, 20)},
+        'elev_10': {'windOn': add_field(windOn[0][0]['G31_den10'], 'elevator_deflection',
+                            np.float64, 10) , 'windOff': add_field(windOff[0][0]['G31_den10'], 'elevator_deflection',
+                                       np.float64, 10)},
+        'elev_n20': {'windOn': add_field(windOn[0][0]['G31_de_n20'] , 'elevator_deflection',
+                            np.float64, -20) , 'windOff': add_field(windOff[0][0]['G31_de_n20'], 'elevator_deflection',
+                                       np.float64, -20)}
+                             }
+tailOff_windOn = data_tailoff['BAL']['windOn'][0][0]['tailOff_beta0_balance']
+tailOff_windOff = data_tailoff['BAL']['windOff'][0][0]['tailOff_beta0_balance']
+data_tailoff = {'windOn': tailOff_windOn, 'windOff': tailOff_windOff}
 
 # Example, data at elevator deflection of 20 degrees
-elev_20 = data['elev_20']
+elev_20 = data_normal_configuration['elev_20']['windOn']  # Use 'windOff' for wind-off data
 aoa = elev_20['AoA'][0][0].squeeze()
+aos = elev_20['AoS'][0][0].squeeze()
 CL = elev_20['CL'][0][0].squeeze()
 CD = elev_20['CD'][0][0].squeeze()
 CYaw = elev_20['CYaw'][0][0].squeeze()
