@@ -7,6 +7,12 @@ def interpolate(x,y,x0):
     return y0 
 
 
+def get_K3(x):
+    data=np.loadtxt('K1_K3plot.txt',skiprows=2)
+    y011=interpolate(data[:,0],data[:,2],x)
+    return y011
+
+
 
 
 # data=np.loadtxt('K1_K3plot.txt',skiprows=2)
