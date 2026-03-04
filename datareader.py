@@ -1,54 +1,71 @@
 import scipy.io as spio
 import numpy as np
+import copy
 
 FIELD_EXPLANATIONS = {
             'AoA': 'Angle of Attack in degrees',
             'AoS': 'Angle of Sideslip in degrees',
-            'CL': 'Lift Coefficient',
-            'CD': 'Drag Coefficient',
-            'CYaw': 'Side Force Coefficient',
-            'CMroll': 'Rolling Moment Coefficient',
-            'CMpitch': 'Pitching Moment Coefficient',
-            'CMpitch25c': 'Pitching Moment Coefficient at 25% chord',
-            'CMyaw': 'Yawing Moment Coefficient',
-            'rho': 'Air Density in kg/m^3. Corrected from measured value by the Matlab code to account for sensor calibration.',
-            'V': 'Freestream Velocity in m/s. Corrected from measured value by the Matlab code to account for sensor calibration.',
-            'pInf': 'Freestream Pressure in Pa. Corrected from measured value by the Matlab code to account for sensor calibration.',
-            'q': 'Dynamic Pressure in Pa. Corrected from measured value by the Matlab code to account for sensor calibration.',
-            'temp': 'Air Temperature in K',
-            'nu': 'Kinematic Viscosity in m^2/s. Calculated from corrected parameters.',
-            'Re': 'Reynolds Number. Corrected from measured value by the Matlab code to account for sensor calibration.',
-            'J_M1': 'Advance Ratio of Motor 1',
-            'J_M2': 'Advance Ratio of Motor 2',
-            'rpsM1': 'Rotations per second of Motor 1',
-            'rpsM2': 'Rotations per second of Motor 2',
-            'iM1': 'Current of Motor 1 in Amperes',
-            'iM2': 'Current of Motor 2 in Amperes',
-            'tM1': 'Temperature of Motor 1 in Celsius',
-            'tM2': 'Temperature of Motor 2 in Celsius',
-            'vM1': 'Voltage of Motor 1 in Volts',
-            'vM2': 'Voltage of Motor 2 in Volts',
-            'b': 'Wing Span in meters',
-            'S': 'Wing Planform Area in square meters',
-            'c': 'Mean Aerodynamic Chord in meters',
-            'elevator_deflection': 'Elevator Deflection in degrees',
-            'wind_condition': 'Wind condition during the test, either "windOn" or "windOff"'
+            'CL': 'Lift Coefficient. Not calculated by MATLAB for windoff',
+            'CD': 'Drag Coefficient. Not calculated by MATLAB for windoff',
+            'CYaw': 'Side Force Coefficient. Not calculated by MATLAB for windoff',
+            'CMroll': 'Rolling Moment Coefficient. Not calculated by MATLAB for windoff',
+            'CMpitch': 'Pitching Moment Coefficient. Not calculated by MATLAB for windoff',
+            'CMpitch25c': 'Pitching Moment Coefficient at 25% chord. Not calculated by MATLAB for windoff, propoff',
+            'CMyaw': 'Yawing Moment Coefficient. Not calculated by MATLAB for windoff',
+            'rho': 'Air Density in kg/m^3. Corrected from measured value by the Matlab code to account for sensor calibration. Not measured for windoff, propoff condition',
+            'V': 'Freestream Velocity in m/s. Corrected from measured value by the Matlab code to account for sensor calibration. Not applicable to windoff condition',
+            'pInf': 'Freestream Pressure in Pa. Corrected from measured value by the Matlab code to account for sensor calibration. Not measured for windoff, propoff condition',
+            'q': 'Dynamic Pressure in Pa. Corrected from measured value by the Matlab code to account for sensor calibration. Not measured for windoff, propoff condition',
+            'temp': 'Air Temperature in K. Not measured for propoff condition',
+            'nu': 'Kinematic Viscosity in m^2/s. Calculated from corrected parameters. Not calculated by MATLAB for windoff, propoff',
+            'Re': 'Reynolds Number. Corrected from measured value by the Matlab code to account for sensor calibration. Not calculated by MATLAB for windoff, propoff',
+            'J_M1': 'Advance Ratio of Motor 1. Not applicable to windoff, propoff condition',
+            'J_M2': 'Advance Ratio of Motor 2. Not applicable to windoff, propoff condition',
+            'rpsM1': 'Rotations per second of Motor 1. Not applicable to windoff, propoff condition',
+            'rpsM2': 'Rotations per second of Motor 2. Not applicable to windoff, propoff condition',
+            'iM1': 'Current of Motor 1 in Amperes. Not applicable to windoff, propoff condition',
+            'iM2': 'Current of Motor 2 in Amperes. Not applicable to windoff, propoff condition',
+            'tM1': 'Temperature of Motor 1 in Celsius. Not applicable to windoff, propoff condition',
+            'tM2': 'Temperature of Motor 2 in Celsius. Not applicable to windoff, propoff condition',
+            'vM1': 'Voltage of Motor 1 in Volts. Not applicable to windoff, propoff condition',
+            'vM2': 'Voltage of Motor 2 in Volts. Not applicable to windoff, propoff condition',
+            'b': 'Wing Span in meters. Not calculated by MATLAB for windoff, propoff',
+            'S': 'Wing Planform Area in square meters. Not calculated by MATLAB for windoff, propoff',
+            'c': 'Mean Aerodynamic Chord in meters. Not calculated by MATLAB for windoff, propoff',
+            'elevator_deflection': 'Elevator Deflection in degrees. Not applicable for tail off. Not calculated for propoff',
+            'wind_condition': 'Wind condition during the test, either "windOn" or "windOff". Unknown for propoff',
+            'dE': 'We need to ask Thomas Sinnige what this is',
+            'dR': 'We need to ask Thomas Sinnige what this is',
         }
 
 def add_field(a, name, dtype, value):
-    b = np.zeros(a.shape, a.dtype.descr + [(name, dtype)])
+    b = np.zeros(a.shape, a.dtype.descr + [(name, object)])
     b[list(a.dtype.names)] = a
     if np.isscalar(value) or value == None:
-        b[name] = value
+        b[name][...] = [[np.full_like(b['AoA'][0][0], np.array([[value]]), dtype=dtype)]]
     else:
-        b[name][...] = value
+        raise NotImplementedError
     return b
-def align_dtype(arr, target_dtype):
-    out = np.ma.empty(arr.shape, dtype=target_dtype)
-    out.mask = True
-    for name in arr.dtype.names:
-        out[name] = arr[name]
-    out.mask = True
+def align_dtype(arr, target_dtype,targetshape=None):
+    if targetshape is None:
+        out = np.ma.empty(arr.shape, dtype=target_dtype)
+    else:
+        out = np.ma.empty(np.shape(targetshape), dtype=target_dtype)
+        for field in target_dtype.names:
+            if field not in arr.dtype.names:
+                if field != 'B' and field != 'B16zeroed':
+                    out.data[0][0][field] = np.zeros((np.shape(arr[0][0]['run'])[0] , np.shape(targetshape[0][0][field])[1]))
+                    out.mask[0][0][field] = True
+                else:
+                    out.data[0][0][field] = np.zeros(
+                        (np.shape(arr[0][0]['run'])[0], 6))
+                    out.mask[0][0][field] = True
+            else:
+                if np.shape(arr[field][0][0]) == () or np.shape(arr[field][0][0]) == (1, 1):
+                    out[0][0][field] = np.full((np.shape(arr[0][0]['run'])[0] , np.shape(targetshape[0][0]['run'])[1]), arr[field][0][0])
+                else:
+                    out[0][0][field] = arr[field][0][0]
+
     return out
 
 
@@ -61,30 +78,43 @@ class loaded_data:
             windOn = data_wind_tunnel_test['BAL']['windOn'][0][0]
             windOff = data_wind_tunnel_test['BAL']['windOff'][0][0]
             config = data_wind_tunnel_test['BAL']['config'][0][0]
-            prototype_dtype = add_field(add_field(windOn[0][0]['G31_d0'], 'elevator_deflection',
-                                                                       np.float64, 0), 'wind_condition', 'U10', 'windOn').dtype
+            data_normal_configuration2 = copy.deepcopy(add_field(add_field(windOn[0][0]['G31_d0'], 'elevator_deflection',
+                                                              np.float64, 0), 'wind_condition', 'U10', 'windOn'))
+            prototype_dtype = data_normal_configuration2.dtype
+            data_normal_configuration = copy.deepcopy(data_normal_configuration2)
 
-
-            data_normal_configuration = np.concatenate([add_field(add_field(windOn[0][0]['G31_d0'], 'elevator_deflection',
-                                                                       np.float64, 0), 'wind_condition', 'U10', 'windOn'),
+            data_normal_configuration_array = [align_dtype(add_field(add_field(windOn[0][0]['G31_d0'], 'elevator_deflection',
+                                                                       np.float64, 0), 'wind_condition', 'U10', 'windOn'), prototype_dtype, data_normal_configuration2),
                                          align_dtype(add_field(add_field(windOff[0][0]['G31_d0'], 'elevator_deflection'
-                                                                        , np.float64, 0), 'wind_condition', 'U10', 'windOff'), prototype_dtype),
-                                         add_field(add_field(windOn[0][0]['G31_de_n10'], 'elevator_deflection',
-                                                                 np.float64, -10), 'wind_condition', 'U10', 'windOn'),
+                                                                        , np.float64, 0), 'wind_condition', 'U10', 'windOff'), prototype_dtype, data_normal_configuration2),
+                                         align_dtype(add_field(add_field(windOn[0][0]['G31_de_n10'], 'elevator_deflection',
+                                                                 np.float64, -10), 'wind_condition', 'U10', 'windOn'), prototype_dtype, data_normal_configuration2),
                                          align_dtype(add_field(add_field(windOff[0][0]['G31_de_n10'], 'elevator_deflection',
-                                                                  np.float64, -10), 'wind_condition', 'U10', 'windOff'), prototype_dtype),
-                                         add_field(add_field(windOn[0][0]['G31_de_20'], 'elevator_deflection',
-                                                                 np.float64, 20), 'wind_condition', 'U10', 'windOn'),
+                                                                  np.float64, -10), 'wind_condition', 'U10', 'windOff'), prototype_dtype, data_normal_configuration2),
+                                         align_dtype(add_field(add_field(windOn[0][0]['G31_de_20'], 'elevator_deflection',
+                                                                 np.float64, 20), 'wind_condition', 'U10', 'windOn'), prototype_dtype, data_normal_configuration2),
                                          align_dtype(add_field(add_field(windOff[0][0]['G31_de_20'], 'elevator_deflection',
-                                                                  np.float64, 20), 'wind_condition', 'U10', 'windOff'), prototype_dtype),
-                                         add_field(add_field(windOn[0][0]['G31_den10'], 'elevator_deflection',
-                                                                 np.float64, 10), 'wind_condition', 'U10', 'windOn'),
+                                                                  np.float64, 20), 'wind_condition', 'U10', 'windOff'), prototype_dtype, data_normal_configuration2),
+                                         align_dtype(add_field(add_field(windOn[0][0]['G31_den10'], 'elevator_deflection',
+                                                                 np.float64, 10), 'wind_condition', 'U10', 'windOn'), prototype_dtype, data_normal_configuration2),
                                          align_dtype(add_field(add_field(windOff[0][0]['G31_den10'], 'elevator_deflection',
-                                                                  np.float64, 10), 'wind_condition', 'U10', 'windOff'), prototype_dtype),
-                                         add_field(add_field(windOn[0][0]['G31_de_n20'], 'elevator_deflection',
-                                                                    np.float64, -20), 'wind_condition', 'U10', 'windOn'),
+                                                                  np.float64, 10), 'wind_condition', 'U10', 'windOff'), prototype_dtype, data_normal_configuration2),
+                                         align_dtype(add_field(add_field(windOn[0][0]['G31_de_n20'], 'elevator_deflection',
+                                                                    np.float64, -20), 'wind_condition', 'U10', 'windOn'), prototype_dtype, data_normal_configuration2),
                                             align_dtype(add_field(add_field(windOff[0][0]['G31_de_n20'], 'elevator_deflection',
-                                                                    np.float64, -20), 'wind_condition', 'U10', 'windOff'), prototype_dtype)])
+                                                                    np.float64, -20), 'wind_condition', 'U10', 'windOff'), prototype_dtype, data_normal_configuration2)]
+
+
+
+            for field in prototype_dtype.names:
+                arrs_for_concatenation = []
+                for indd, arrr in enumerate(data_normal_configuration_array):
+                    if type(arrr[field][0][0]) == np.ma.MaskedArray:
+                        arrs_for_concatenation.append(arrr[field][0][0])
+                    else:
+                        arrs_for_concatenation.append(np.ma.masked_array(arrr[field][0][0], mask=np.zeros_like(arrr[field][0][0], dtype=bool)))
+                data_normal_configuration[field][0][0] = np.ma.concatenate(arrs_for_concatenation)
+            data_normal_configuration = np.ma.array(data_normal_configuration, mask=np.zeros_like(data_normal_configuration, dtype=bool))
             data_normal_configuration.explanations = FIELD_EXPLANATIONS
             self.datarr = data_normal_configuration
 
@@ -92,14 +122,43 @@ class loaded_data:
             data_wind_tunnel_test = spio.loadmat(data_file)
             tailOff_windOn = data_wind_tunnel_test['BAL']['windOn'][0][0]['tailOff_beta0_balance'][0][0]
             tailOff_windOff = data_wind_tunnel_test['BAL']['windOff'][0][0]['tailOff_beta0_balance'][0][0]
-            prototype_dtype = add_field(add_field(tailOff_windOn, 'elevator_deflection',
-                                                                       np.float64, None), 'wind_condition', 'U10', 'windOn').dtype
-            data_tailoff = np.concatenate([add_field(add_field(tailOff_windOn, 'elevator_deflection',
-                                                                       np.float64, None), 'wind_condition', 'U10', 'windOn'),
-                                         align_dtype(add_field(add_field(tailOff_windOff, 'elevator_deflection'
-                                                                        , np.float64, None), 'wind_condition', 'U10', 'windOff'), prototype_dtype)])
+            data_tailoff2 = copy.deepcopy(add_field(add_field(tailOff_windOn, 'elevator_deflection',
+                                                                       np.float64, None), 'wind_condition', 'U10', 'windOn'))
+            prototype_dtype = data_tailoff2.dtype
+            data_tailoff = copy.deepcopy(data_tailoff2)
+
+            data_tailoff_array = [align_dtype(data_tailoff2, prototype_dtype, data_tailoff2), align_dtype(add_field(add_field(tailOff_windOff, 'elevator_deflection'
+                                                                            , np.float64, None), 'wind_condition', 'U10', 'windOff'), prototype_dtype, data_tailoff2)]
+
+
+            for field in prototype_dtype.names:
+                arrs_for_concatenation = []
+                for indd, arrr in enumerate(data_tailoff_array):
+                    if type(arrr[field][0][0]) == np.ma.MaskedArray:
+                        arrs_for_concatenation.append(arrr[field][0][0])
+                    else:
+                        arrs_for_concatenation.append(
+                            np.ma.masked_array(arrr[field][0][0], mask=np.zeros_like(arrr[field][0][0], dtype=bool)))
+                data_tailoff[field][0][0] = np.ma.concatenate(arrs_for_concatenation)
+            data_tailoff = np.ma.array(data_tailoff, mask=np.zeros_like(data_tailoff, dtype=bool))
             data_tailoff.explanations = FIELD_EXPLANATIONS
             self.datarr = data_tailoff
+        elif configuration == 'propoff':
+            ## TODO: PROPOFF NEEDS TO BE MATLAB-Corrected still!! Ask prof if it needs to be corrected because it is already in coefficient form. Also 4409 data points is bit large
+            data_wind_tunnel_test = spio.loadmat(data_file)
+            propOff_windOn = data_wind_tunnel_test['propOff']
+            data_propoff = np.ma.masked_array(add_field(add_field(propOff_windOn, 'elevator_deflection',
+                                                                       np.float64, None), 'wind_condition', 'U10', 'windOn'))
+            data_propoff.explanations = FIELD_EXPLANATIONS
+            self.datarr = data_propoff
+
+        elif configuration == 'modeloff':
+            data_wind_tunnel_test = spio.loadmat(data_file)
+            modelOff_windOn = data_wind_tunnel_test['modelOff']
+            data_modeloff = np.ma.masked_array(add_field(add_field(modelOff_windOn, 'elevator_deflection',
+                                                                       np.float64, None), 'wind_condition', 'U10', 'windOn'))
+            data_modeloff.explanations = FIELD_EXPLANATIONS
+            self.datarr = data_modeloff
 
 
 
@@ -167,7 +226,7 @@ class loaded_data:
                 raise ValueError(f"Field '{field_name}' not found in data. "
                                f"Available fields: {self.datarr.dtype.names}")
 
-            field_data = self.datarr[field_name]
+            field_data = self.datarr[field_name][0][0]
 
             # Apply operator
             if operator == 'eq':
@@ -187,10 +246,16 @@ class loaded_data:
                                f"Supported: eq, ne, lt, le, gt, ge")
 
             # Combine with existing mask using AND logic
-            mask = mask & condition
+            mask = np.array(mask & condition)
 
         # Return filtered masked array
-        filtarr = self.datarr[mask]
+        filtarr = copy.deepcopy(self.datarr)
+        for field in self.datarr.dtype.names:
+            if np.shape(self.datarr[field][0][0])[1] != 1:
+                maskt = np.repeat(mask, np.shape(self.datarr[field][0][0])[1], axis=1)
+                filtarr[field] = [[self.datarr[field][0][0][maskt]]]
+            else:
+                filtarr[field] = [[self.datarr[field][0][0][mask]]]
         filtarr.explanations = FIELD_EXPLANATIONS
         retobj = object.__new__(loaded_data)
         retobj.datarr = filtarr
@@ -263,7 +328,15 @@ class loaded_data:
         self.datarr[key] = value_arr
 
     def __array__(self):
-        return self.datarr
+        returner = []
+        for field in self.datarr.dtype.names:
+            if np.shape(self.datarr[field][0][0])[1] != 1:
+                for ind in range(np.shape(self.datarr[field][0][0])[1]):
+                    returner.append(self.datarr[field][0][0][:, ind].reshape(-1, 1))
+            else:
+                returner.append(self.datarr[field][0][0])
+        returner = np.array(returner)
+        return returner
 
     def __str__(self):
         fields = self.datarr.dtype.names
@@ -295,7 +368,6 @@ class loaded_data:
     @property
     def values(self):
         # Return plain numeric array (for plotting, math, etc.)
-        retarr = self.datarr
         plain = np.ma.column_stack(
             [self.datarr[name] for name in self.datarr.dtype.names]
         )
@@ -310,8 +382,12 @@ class loaded_data:
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     data_normal_configuration = loaded_data('normal_config.mat', 'normal_config')
-    print(data_normal_configuration)
+    np.shape(data_normal_configuration)
+    #print(data_normal_configuration)
     data_tailoff = loaded_data('tailoff.mat', 'tailoff')
+    data_propoff = loaded_data('propoff.mat', 'propoff')
+    data_modeloff = loaded_data('modeloff.mat', 'modeloff')
+    print(data_tailoff)
     # Example, data at elevator deflection of 20 degrees
     elev_20 = data_normal_configuration.filter(elevator_deflection=20, wind_condition='windOn')  # Use 'windOff' for wind-off data
     aoa = elev_20['AoA'].values

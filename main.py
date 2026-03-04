@@ -1,49 +1,53 @@
 from datareader import loaded_data
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Example:
 
 # Load the data
 data_normal_configuration = loaded_data('normal_config.mat', 'normal_config')
-print(data_normal_configuration)
+print(data_normal_configuration) # print the data
+print(np.shape(data_normal_configuration)) # perform numpy operations
 data_tailoff = loaded_data('tailoff.mat', 'tailoff')
+data_propoff = loaded_data('propoff.mat', 'propoff')
+data_modeloff = loaded_data('modeloff.mat', 'modeloff')
 
-
-# Data at elevator deflection of 20 degrees
-elev_20 = data_normal_configuration.filter(elevator_deflection=20, wind_condition='windOn')  # Use 'windOff' for wind-off data
-print('Available data fields:', [f'{name}: {elev_20.datarr.explanations.get(name, 'No description')}' for name in elev_20.datarr.dtype.names])
+# Example filtering:
+# Data at elevator deflection greater than or equal to 10 degrees
+elev_ge_10 = data_normal_configuration.filter(elevator_deflection__ge=10, wind_condition='windOn')  # Use 'windOff' for wind-off data
+print('Available data fields:', [f'{name}: {elev_ge_10.datarr.explanations.get(name, 'No description')}' for name in elev_ge_10.datarr.dtype.names])
 
 # Access values
-aoa = elev_20['AoA'].values
-aos = elev_20['AoS'].values
-CL = elev_20['CL'].values
-CD = elev_20['CD'].values
-CYaw = elev_20['CYaw'].values
-CMroll = elev_20['CMroll'].values
-CMpitch = elev_20['CMpitch'].values
-CMpitch25c = elev_20['CMpitch25c'].values
-CMyaw = elev_20['CMyaw'].values
-rho = elev_20['rho'].values
-V = elev_20['V'].values
-pInf = elev_20['pInf'].values
-q = elev_20['q'].values
-T = elev_20['temp'].values
-nu = elev_20['nu'].values
-Re = elev_20['Re'].values
-J1 = elev_20['J_M1'].values
-J2 = elev_20['J_M2'].values
-nrotor1 = elev_20['rpsM1'].values
-nrotor2 = elev_20['rpsM2'].values
-current_motor1 = elev_20['iM1'].values
-current_motor2 = elev_20['iM2'].values
-temp_motor1 = elev_20['tM1'].values
-temp_motor2 = elev_20['tM2'].values
-voltage_motor1 = elev_20['vM1'].values
-voltage_motor2 = elev_20['vM2'].values
-b = elev_20['b'].values
-S = elev_20['S'].values
-c = elev_20['c'].values
-de = elev_20['elevator_deflection'].values
+aoa = elev_ge_10['AoA'].values
+aos = elev_ge_10['AoS'].values
+CL = elev_ge_10['CL'].values
+CD = elev_ge_10['CD'].values
+CYaw = elev_ge_10['CYaw'].values
+CMroll = elev_ge_10['CMroll'].values
+CMpitch = elev_ge_10['CMpitch'].values
+CMpitch25c = elev_ge_10['CMpitch25c'].values
+CMyaw = elev_ge_10['CMyaw'].values
+rho = elev_ge_10['rho'].values
+V = elev_ge_10['V'].values
+pInf = elev_ge_10['pInf'].values
+q = elev_ge_10['q'].values
+T = elev_ge_10['temp'].values
+nu = elev_ge_10['nu'].values
+Re = elev_ge_10['Re'].values
+J1 = elev_ge_10['J_M1'].values
+J2 = elev_ge_10['J_M2'].values
+nrotor1 = elev_ge_10['rpsM1'].values
+nrotor2 = elev_ge_10['rpsM2'].values
+current_motor1 = elev_ge_10['iM1'].values
+current_motor2 = elev_ge_10['iM2'].values
+temp_motor1 = elev_ge_10['tM1'].values
+temp_motor2 = elev_ge_10['tM2'].values
+voltage_motor1 = elev_ge_10['vM1'].values
+voltage_motor2 = elev_ge_10['vM2'].values
+b = elev_ge_10['b'].values
+S = elev_ge_10['S'].values
+c = elev_ge_10['c'].values
+de = elev_ge_10['elevator_deflection'].values
 
 # Plotting CL, CD, and the drag polar (warning, all kinds of thrust settings are mixed, does not give sensible results)
 fig, ax = plt.subplots(1, 3)
