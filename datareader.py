@@ -256,9 +256,12 @@ class loaded_data:
         self.datarr['test_point_id'][0][0][68] = '47'
 
 
-    def __getitem__(self, item):
+    def __getitem__(self, item, acoustic=False):
         #retarr = [test_point[item] for test_point in self.datarr]
-        retobj = object.__new__(loaded_data)
+        if not acoustic:
+            retobj = object.__new__(loaded_data)
+        else:
+            retobj = object.__new__(loaded_acoustic_spectrum_data)
         retobj.datarr = self.datarr[[item]]
         retobj.explanations = FIELD_EXPLANATIONS
         retobj.data_file = self.data_file
@@ -344,22 +347,27 @@ class loaded_data:
             mask = np.array(mask & condition)
 
         # Return filtered masked array
-        filtarr = np.ma.array(copy.deepcopy(self.datarr))
+
         if not acoustic:
+            filtarr = np.ma.array(copy.deepcopy(self.datarr))
             for field in self.datarr.dtype.names:
                 if np.shape(self.datarr[field][0][0])[1] != 1:
-                    maskt = np.repeat(mask, np.shape(self.datarr[field][0][0])[1], axis=1)
-                    filtarr[field] = [[self.datarr[field][0][0][maskt]]]
+                    #maskt = np.repeat(mask, np.shape(self.datarr[field][0][0])[1], axis=1)
+                    filtarr[field] = [[self.datarr[field][0][0][mask.squeeze()]]]
                 else:
-                    filtarr[field] = [[self.datarr[field][0][0][mask]]]
+                    filtarr[field] = [[self.datarr[field][0][0][mask].reshape(-1,1)]]
         else:
-            for field in self.datarr.dtype.names:
-                if np.shape(self.datarr[field])[1] != 1:
-                    maskt = np.repeat(mask, np.shape(self.datarr[field])[1], axis=1)
-                    filtarr[field] = self.datarr[field][maskt]
-                else:
-                    filtarr[field] = self.datarr[field][mask]
-        retobj = object.__new__(loaded_data)
+            filtarr = np.ma.array(copy.deepcopy(self.datarr))[mask.squeeze()]
+            # for field in self.datarr.dtype.names:
+            #     if np.shape(self.datarr[field])[1] != 1:
+            #         #maskt = np.repeat(mask, np.shape(self.datarr[field])[1], axis=1)
+            #         filtarr[field] = self.datarr[field][mask.squeeze()]
+            #     else:
+            #         filtarr[field] = self.datarr[field][mask].reshape(-1,1)
+        if not acoustic:
+            retobj = object.__new__(loaded_data)
+        else:
+            retobj = object.__new__(loaded_acoustic_spectrum_data)
         retobj.datarr = filtarr
         retobj.explanations = FIELD_EXPLANATIONS
         retobj.data_file = self.data_file
@@ -566,7 +574,7 @@ class loaded_acoustic_spectrum_data(loaded_data):
                 add_field2(add_field2(add_field2(acoustic_windOn[:,12][0], 'dE',
                                                 np.float64, 20), 'wind_condition', 'U10', 'windOn'), 'test_point_id', 'U10', 'Noise4'),
                 ]
-            arrays = [[row[0]] for row in acoustic_data_normal_configuration_array]
+            arrays = [[row] for row in acoustic_data_normal_configuration_array]
             acoustic_data_normal_configuration = np.ma.array(arrays)
             self.datarr = acoustic_data_normal_configuration
             self.explanations = FIELD_EXPLANATIONS
@@ -588,48 +596,82 @@ class loaded_acoustic_spectrum_data(loaded_data):
 
     def fill_in_missing_values(self):
         test_points_array = []
+
         for test_point_id in  self.datarr['test_point_id']:
             # Add all information from the loaded_data object with the same test_point_id to the acoustic spectrum data
             matching_aerodynamic_data = self.associated_aerodynamic_data.filter(test_point_id=test_point_id)
             datarr_replacement = self.filter(test_point_id=test_point_id).datarr[0].reshape(1, -1)
-            field_to_add = []
-            dtype_to_add = []
-            for field in matching_aerodynamic_data.datarr.dtype.names:
-                if field in self.datarr.dtype.names:
-                    continue
-                else:
-                    field_to_add.append(field)
+            # field_to_add = []
+            # dtype_to_add = []
+            # for field in matching_aerodynamic_data.datarr.dtype.names:
+            #     if field in self.datarr.dtype.names:
+            #         continue
+            #     else:
+            #         field_to_add.append(field)
             #datarr_replacement2 = rfn.append_fields(datarr_replacement, field_to_add, [np.full(len(datarr_replacement), matching_aerodynamic_data.datarr[field][0][0], dtype=object) for field in field_to_add], dtypes=object, usemask=True)
-            b_extended = rfn.repack_fields(
-                rfn.append_fields(datarr_replacement, field_to_add, np.zeros(len(field_to_add), dtype='object'))).reshape(1, -1)
+            b_extended = rfn.repack_fields(datarr_replacement) #rfn.repack_fields(
+                #rfn.append_fields(datarr_replacement, field_to_add, np.zeros(len(field_to_add), dtype='object'))).reshape(-1)
             a_extended = rfn.repack_fields(matching_aerodynamic_data.datarr)  # just to be consistent
             # Now concatenate
 
-            names_a = set(a_extended.dtype.names)
-            names_b = set(b_extended.dtype.names)
+            # names_a = set(a_extended.dtype.names)
+            # names_b = set(b_extended.dtype.names)
+            #
+            # all_names = list(names_a | names_b)
+            #
+            # def align_structured2(arr, all_names):
+            #     new_dtype = [(name, arr.dtype[name] if name in arr.dtype.names else float) for name in all_names]
+            #     new_arr = np.zeros(arr.shape, dtype=new_dtype)
+            #
+            #     for name in arr.dtype.names:
+            #         new_arr[name] = arr[name]
+            #
+            #     return new_arr
+            #
+            # a_aligned = align_structured2(a_extended, all_names)
+            # b_aligned = align_structured2(b_extended, all_names)
+            #
+            # c = np.concatenate([a_aligned, b_aligned])
+            old_dtype = b_extended.dtype
 
-            all_names = list(names_a | names_b)
+            new_dtype = []
+            for name in old_dtype.names:
+                if name == 'B':
+                    new_dtype.append(('B_acoustic', old_dtype[name]))
+                elif name == 'dE':
+                    new_dtype.append(('dE_acoustic', old_dtype[name]))
+                elif name == 'wind_condition':
+                    new_dtype.append(('wind_condition_acoustic', old_dtype[name]))
+                elif name == 'test_point_id':
+                    new_dtype.append(('test_point_id_acoustic', old_dtype[name]))
+                else:
+                    new_dtype.append((name, old_dtype[name]))
 
-            def align_structured2(arr, all_names):
-                new_dtype = [(name, arr.dtype[name] if name in arr.dtype.names else float) for name in all_names]
-                new_arr = np.zeros(arr.shape, dtype=new_dtype)
 
-                for name in arr.dtype.names:
-                    new_arr[name] = arr[name]
+            b_renamed = np.empty(b_extended.shape, dtype=new_dtype)
 
-                return new_arr
+            for name in old_dtype.names:
+                if name == 'B':
+                    b_renamed['B_acoustic'] = b_extended[name]
+                elif name == 'dE':
+                    b_renamed['dE_acoustic'] = b_extended[name]
+                elif name == 'wind_condition':
+                    b_renamed['wind_condition_acoustic'] = b_extended[name]
+                elif name == 'test_point_id':
+                    b_renamed['test_point_id_acoustic'] = b_extended[name]
+                else:
+                    b_renamed[name] = b_extended[name]
 
-            a_aligned = align_structured2(a_extended, all_names)
-            b_aligned = align_structured2(b_extended, all_names)
-
-            c = np.concatenate([a_aligned, b_aligned])
-
+            b_extended = b_renamed
+            b_extended = rfn.rename_fields(b_extended, {'B': 'B_acoustic', 'dE': 'dE_acoustic', 'wind_condition': 'wind_condition_acoustic', 'test_point_id': 'test_point_id_acoustic'})
+            c = rfn.merge_arrays((a_extended, b_extended), flatten=True)
             test_points_array.append(copy.deepcopy(c))
-            arrays2 = [[row[0]] for row in test_points_array]
-            self.datarr = np.ma.array(arrays2)
-            self.explanations = FIELD_EXPLANATIONS
+        arrays2 = [row for row in test_points_array]
+        newdatarr = np.ma.array(arrays2)
+        self.datarr = rfn.drop_fields(newdatarr, ['B_acoustic', 'dE_acoustic', 'wind_condition_acoustic', 'test_point_id_acoustic'])
+        self.explanations = FIELD_EXPLANATIONS
 
-            return
+        return
 
 
     def filter(self, **kwargs):
@@ -641,17 +683,207 @@ class loaded_acoustic_spectrum_data(loaded_data):
     def __array__(self):
         return super().__array__(acoustic=True)
 
+    def __getitem__(self, item):
+        return super().__getitem__(item, acoustic=True)
+
+    @property
+    def values(self, acoustic=True):
+        # Return plain numeric array (for plotting, math, etc.)
+        plain = np.ma.column_stack(
+            [self.datarr[name] for name in self.datarr.dtype.names]
+        )
+        out = np.ma.filled(plain, np.nan)
+        if not acoustic:
+            return out[0][0].ravel()
+        else:
+            return out.ravel()
 
 
 
 
 
-class loaded_acoustic_phase_analysis_data:
+
+class loaded_acoustic_phase_analysis_data(loaded_acoustic_spectrum_data):
     def __init__(self, data_file, configuration, associated_aerodynamic_data):
         self.configuration = configuration
         self.data_file = data_file
         self.associated_aerodynamic_data = associated_aerodynamic_data
-        #if configuration == 'normal_config':
+        if configuration == 'normal_config':
+            data_wind_tunnel_test = spio.loadmat(data_file)
+            acoustic_windOn = data_wind_tunnel_test['MIC']
+            extra_data_windOn = data_wind_tunnel_test['opp']
+            new_test_points_array = []
+            for test_point_acoustic, test_point_extra in zip(acoustic_windOn.squeeze(), extra_data_windOn.squeeze()):
+                old_dtype = test_point_acoustic.dtype
+
+                new_dtype = []
+                for name in old_dtype.names:
+                    # if name == 'B':
+                    #     new_dtype.append(('B_acoustic', old_dtype[name]))
+                    # elif name == 'dE':
+                    #     new_dtype.append(('dE_acoustic', old_dtype[name]))
+                    # elif name == 'wind_condition':
+                    #     new_dtype.append(('wind_condition_acoustic', old_dtype[name]))
+                    # elif name == 'test_point_id':
+                    #     new_dtype.append(('test_point_id_acoustic', old_dtype[name]))
+                    # else:
+                    new_dtype.append((name, old_dtype[name]))
+
+                b_renamed = np.empty(test_point_acoustic.shape, dtype=new_dtype)
+
+                for name in old_dtype.names:
+                    # if name == 'B':
+                    #     b_renamed['B_acoustic'] = test_point_acoustic[name]
+                    # elif name == 'dE':
+                    #     b_renamed['dE_acoustic'] = test_point_acoustic[name]
+                    # elif name == 'wind_condition':
+                    #     b_renamed['wind_condition_acoustic'] = test_point_acoustic[name]
+                    # elif name == 'test_point_id':
+                    #     b_renamed['test_point_id_acoustic'] = test_point_acoustic[name]
+                    # else:
+                    b_renamed[name] = test_point_acoustic[name]
+
+                b_extended = b_renamed
+                #b_extended = rfn.rename_fields(b_extended, {'B': 'B_acoustic', 'dE': 'dE_acoustic',
+                #                                            'wind_condition': 'wind_condition_acoustic',
+                #                                            'test_point_id': 'test_point_id_acoustic'})
+                test_point_new = rfn.merge_arrays((test_point_extra, b_extended), flatten=True)
+
+                #test_point_new = np.concatenate([a_aligned, b_aligned], axis=1)
+                new_test_points_array.append(test_point_new)
+            arrays = [[row] for row in new_test_points_array]
+            acoustic_phase_data_normal_configuration = np.ma.array(arrays)
+            self.datarr = acoustic_phase_data_normal_configuration
+            self.explanations = FIELD_EXPLANATIONS
+            self.add_test_point_id()
+            self.fill_in_missing_values()
+        elif configuration == 'tailoff':
+            raise NotImplementedError
+        else:
+            raise NotImplementedError(f"Phase analysis data loading not implemented for configuration '{configuration}'. Are you sure prop is on?")
+
+
+    def add_test_point_id(self):
+        if 'test_point_id' not in self.datarr.dtype.names:
+            if self.configuration == 'tailoff':
+                self.datarr = add_field(self.datarr, 'test_point_id', 'U25', 'tailoff (from Sinnige)')
+                return
+            elif self.configuration == 'propoff':
+                self.datarr = add_field(self.datarr, 'test_point_id', 'U25', 'propoff (from Sinnige)')
+                return
+            elif self.configuration == 'modeloff':
+                self.datarr = add_field(self.datarr, 'test_point_id', 'U25', 'modeloff (from Sinnige)')
+                return
+            else:
+                self.datarr = add_field(self.datarr, 'test_point_id', 'U25', None)
+        self.datarr['test_point_id'][0] = [['32']]
+        self.datarr['test_point_id'][1] = [['33']]
+        self.datarr['test_point_id'][2] = [['34']]
+        self.datarr['test_point_id'][3] = [['35']]
+        self.datarr['test_point_id'][4] = [['36']]
+        self.datarr['test_point_id'][5] = [['37']]
+        self.datarr['test_point_id'][6] = [['38']]
+        self.datarr['test_point_id'][7] = [['39']]
+        self.datarr['test_point_id'][8] = [['40']]
+        self.datarr['test_point_id'][9] = [['Noise1']]
+        self.datarr['test_point_id'][10] =[[ 'Noise2']]
+        self.datarr['test_point_id'][11] =[[ 'Noise3']]
+        self.datarr['test_point_id'][12] =[[ 'Noise4']]
+
+    def fill_in_missing_values(self):
+        test_points_array = []
+
+        for test_point_id in  self.datarr['test_point_id']:
+            # Add all information from the loaded_data object with the same test_point_id to the acoustic spectrum data
+            matching_aerodynamic_data = self.associated_aerodynamic_data.filter(test_point_id=test_point_id)
+            datarr_replacement = self.filter(test_point_id=test_point_id).datarr[0].reshape(1, -1)
+            # field_to_add = []
+            # dtype_to_add = []
+            # for field in matching_aerodynamic_data.datarr.dtype.names:
+            #     if field in self.datarr.dtype.names:
+            #         continue
+            #     else:
+            #         field_to_add.append(field)
+            #datarr_replacement2 = rfn.append_fields(datarr_replacement, field_to_add, [np.full(len(datarr_replacement), matching_aerodynamic_data.datarr[field][0][0], dtype=object) for field in field_to_add], dtypes=object, usemask=True)
+            b_extended = rfn.repack_fields(datarr_replacement) #rfn.repack_fields(
+                #rfn.append_fields(datarr_replacement, field_to_add, np.zeros(len(field_to_add), dtype='object'))).reshape(-1)
+            a_extended = rfn.repack_fields(matching_aerodynamic_data.datarr)  # just to be consistent
+            # Now concatenate
+
+            # names_a = set(a_extended.dtype.names)
+            # names_b = set(b_extended.dtype.names)
+            #
+            # all_names = list(names_a | names_b)
+            #
+            # def align_structured2(arr, all_names):
+            #     new_dtype = [(name, arr.dtype[name] if name in arr.dtype.names else float) for name in all_names]
+            #     new_arr = np.zeros(arr.shape, dtype=new_dtype)
+            #
+            #     for name in arr.dtype.names:
+            #         new_arr[name] = arr[name]
+            #
+            #     return new_arr
+            #
+            # a_aligned = align_structured2(a_extended, all_names)
+            # b_aligned = align_structured2(b_extended, all_names)
+            #
+            # c = np.concatenate([a_aligned, b_aligned])
+            old_dtype = b_extended.dtype
+
+            new_dtype = []
+            for name in old_dtype.names:
+                if name == 'B':
+                    new_dtype.append(('B_acoustic', old_dtype[name]))
+                elif name == 'dE':
+                    new_dtype.append(('dE_acoustic', old_dtype[name]))
+                elif name == 'wind_condition':
+                    new_dtype.append(('wind_condition_acoustic', old_dtype[name]))
+                elif name == 'test_point_id':
+                    new_dtype.append(('test_point_id_acoustic', old_dtype[name]))
+                elif name == 'AoA':
+                    new_dtype.append(('AoA_acoustic', old_dtype[name]))
+                elif name == 'AoS':
+                    new_dtype.append(('AoS_acoustic', old_dtype[name]))
+                elif name == 'J_M1':
+                    new_dtype.append(('J_M1_acoustic', old_dtype[name]))
+                elif name == 'J_M2':
+                    new_dtype.append(('J_M2_acoustic', old_dtype[name]))
+                else:
+                    new_dtype.append((name, old_dtype[name]))
+
+
+            b_renamed = np.empty(b_extended.shape, dtype=new_dtype)
+
+            for name in old_dtype.names:
+                if name == 'B':
+                    b_renamed['B_acoustic'] = b_extended[name]
+                elif name == 'dE':
+                    b_renamed['dE_acoustic'] = b_extended[name]
+                elif name == 'wind_condition':
+                    b_renamed['wind_condition_acoustic'] = b_extended[name]
+                elif name == 'test_point_id':
+                    b_renamed['test_point_id_acoustic'] = b_extended[name]
+                elif name == 'AoA':
+                    b_renamed['AoA_acoustic'] = b_extended[name]
+                elif name == 'AoS':
+                    b_renamed['AoS_acoustic'] = b_extended[name]
+                elif name == 'J_M1':
+                    b_renamed['J_M1_acoustic'] = b_extended[name]
+                elif name == 'J_M2':
+                    b_renamed['J_M2_acoustic'] = b_extended[name]
+                else:
+                    b_renamed[name] = b_extended[name]
+
+            b_extended = b_renamed
+            b_extended = rfn.rename_fields(b_extended, {'B': 'B_acoustic', 'dE': 'dE_acoustic', 'wind_condition': 'wind_condition_acoustic', 'test_point_id': 'test_point_id_acoustic', 'AoA': 'AoA_acoustic', 'AoS': 'AoS_acoustic', 'J_M1': 'J_M1_acoustic', 'J_M2': 'J_M2_acoustic'})
+            c = rfn.merge_arrays((a_extended, b_extended), flatten=True)
+            test_points_array.append(copy.deepcopy(c))
+        arrays2 = [row for row in test_points_array]
+        newdatarr = np.ma.array(arrays2)
+        self.datarr = rfn.drop_fields(newdatarr, ['B_acoustic', 'dE_acoustic', 'wind_condition_acoustic', 'test_point_id_acoustic', 'AoA_acoustic', 'AoS_acoustic', 'J_M1_acoustic', 'J_M2_acoustic'])
+        self.explanations = FIELD_EXPLANATIONS
+
+        return
 
 
 
@@ -668,10 +900,11 @@ if __name__ == "__main__":
     acoustic_spectrum_data_normal_configuration = loaded_acoustic_spectrum_data('spectrum_analysis_normal_configuration.mat', 'normal_config', data_normal_configuration)
     acoustic_spectrum_data_propoff = loaded_acoustic_spectrum_data('spectrum_analysis_propoff.mat', 'propoff', data_propoff)
     phase_analysis_normal_configuration = loaded_acoustic_phase_analysis_data('acoustic_propeller_phase_analysis_normal_condition.mat', 'normal_config', data_normal_configuration)
-
+    acfilt = acoustic_spectrum_data_normal_configuration.filter(AoA__eq=12.)
     print(acoustic_spectrum_data_normal_configuration)
     # Example, data at elevator deflection of 20 degrees
     elev_20 = data_normal_configuration.filter(dE=20, wind_condition='windOn')  # Use 'windOff' for wind-off data
+    np.shape(elev_20)
     aoa = elev_20['AoA'].values
     aos = elev_20['AoS'].values
     CL = elev_20['CL'].values
