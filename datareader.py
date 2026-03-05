@@ -758,7 +758,7 @@ class loaded_acoustic_phase_analysis_data(loaded_acoustic_spectrum_data):
             self.add_test_point_id()
             self.fill_in_missing_values()
         elif configuration == 'tailoff':
-            raise NotImplementedError
+            raise NotImplementedError('Phase analysis data has unfortunately not been provided for tailoff configuration')
         else:
             raise NotImplementedError(f"Phase analysis data loading not implemented for configuration '{configuration}'. Are you sure prop is on?")
 
