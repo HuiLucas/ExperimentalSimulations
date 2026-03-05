@@ -1,6 +1,8 @@
 import scipy.io as spio
 import numpy as np
 import copy
+from numpy.lib import recfunctions as rfn
+#TODO: acoustic data loader
 
 FIELD_EXPLANATIONS = {
             'AoA': 'Angle of Attack in degrees',
@@ -32,10 +34,24 @@ FIELD_EXPLANATIONS = {
             'b': 'Wing Span in meters. Not calculated by MATLAB for windoff, propoff',
             'S': 'Wing Planform Area in square meters. Not calculated by MATLAB for windoff, propoff',
             'c': 'Mean Aerodynamic Chord in meters. Not calculated by MATLAB for windoff, propoff',
-            'elevator_deflection': 'Elevator Deflection in degrees. Not applicable for tail off. Not calculated for propoff',
+            'dE': 'Elevator Deflection in degrees. Not applicable for tail off.',
+            'dR': 'Rudder Deflection in degrees. Not applicable for tail off.',
             'wind_condition': 'Wind condition during the test, either "windOn" or "windOff". Unknown for propoff',
-            'dE': 'We need to ask Thomas Sinnige what this is',
-            'dR': 'We need to ask Thomas Sinnige what this is',
+            'pMic': 'Microphone pressure data. For acoustic spectrum data and phase data only, not applicable to aerodynamic data',
+            'oneP': 'Pulse signal data for propeller rotation. For acoustic spectrum data and phase data only, not applicable to aerodynamic data',
+            'yAvg': 'Phase averaged pressure data. For phase data only, not applicable to aerodynamic data and acoustic spectrum data',
+            'nS': 'Number of samples in the acoustic spectrum data. For acoustic spectrum data only, not applicable to aerodynamic data and phase data',
+            'tMeas': 'Measurement time in seconds for the acoustic spectrum data. For acoustic spectrum data only, not applicable to aerodynamic data and phase data',
+            't': 'Time array for spectrum data. For acoustic spectrum data only, not applicable to aerodynamic data and phase data',
+            'Naq': 'Number of acquired samples for the acoustic spectrum data. For acoustic spectrum data only, not applicable to aerodynamic data and phase data',
+            'dt': 'Time step for the acoustic spectrum data. For acoustic spectrum data only, not applicable to aerodynamic data and phase data',
+            'B': 'Number of frequencies in frequency bins (ensembles) for the acoustic spectrum data. For acoustic spectrum data only, not applicable to aerodynamic data and phase data',
+            'df': 'Frequency resolution for the acoustic spectrum data. For acoustic spectrum data only, not applicable to aerodynamic data and phase data',
+            'flab': 'Frequency array for the acoustic spectrum data. For acoustic spectrum data only, not applicable to aerodynamic data and phase data',
+            'ApOASPL_dB': 'Overall Sound Pressure Level in decibels (avg over time), calculated from the acoustic spectrum data. For acoustic spectrum data only, not applicable to aerodynamic data and phase data',
+            'N': 'Fourier analysis ensemble size (number of bins) for the acoustic spectrum data. For acoustic spectrum data only, not applicable to aerodynamic data and phase data',
+            'SPSL': 'Sound Pressure Level in decibels for each frequency bin, calculated from the acoustic spectrum data. For acoustic spectrum data only, not applicable to aerodynamic data and phase data',
+            'test_point_id': 'Identifier for the test point, e.g. "13", "14", ..., "Noise1", "Noise2", etc. '
         }
 
 def add_field(a, name, dtype, value):
@@ -46,6 +62,11 @@ def add_field(a, name, dtype, value):
     else:
         raise NotImplementedError
     return b
+
+def add_field2(a, name, dtype, value):
+    b = rfn.append_fields(a, name, [value], dtypes=dtype , usemask=False)
+    return b
+
 def align_dtype(arr, target_dtype,targetshape=None):
     if targetshape is None:
         out = np.ma.empty(arr.shape, dtype=target_dtype)
@@ -73,36 +94,29 @@ class loaded_data:
     def __init__(self, data_file, configuration):
         self.configuration = configuration
         self.data_file = data_file
+        self.explanations = FIELD_EXPLANATIONS
         if configuration == 'normal_config':
             data_wind_tunnel_test = spio.loadmat(data_file)
             windOn = data_wind_tunnel_test['BAL']['windOn'][0][0]
             windOff = data_wind_tunnel_test['BAL']['windOff'][0][0]
             config = data_wind_tunnel_test['BAL']['config'][0][0]
-            data_normal_configuration2 = copy.deepcopy(add_field(add_field(windOn[0][0]['G31_d0'], 'elevator_deflection',
+            data_normal_configuration2 = copy.deepcopy(add_field(add_field(windOn[0][0]['G31_d0'], 'dE',
                                                               np.float64, 0), 'wind_condition', 'U10', 'windOn'))
             prototype_dtype = data_normal_configuration2.dtype
             data_normal_configuration = copy.deepcopy(data_normal_configuration2)
 
-            data_normal_configuration_array = [align_dtype(add_field(add_field(windOn[0][0]['G31_d0'], 'elevator_deflection',
+            data_normal_configuration_array = [align_dtype(add_field(add_field(windOn[0][0]['G31_d0'], 'dE',
                                                                        np.float64, 0), 'wind_condition', 'U10', 'windOn'), prototype_dtype, data_normal_configuration2),
-                                         align_dtype(add_field(add_field(windOff[0][0]['G31_d0'], 'elevator_deflection'
-                                                                        , np.float64, 0), 'wind_condition', 'U10', 'windOff'), prototype_dtype, data_normal_configuration2),
-                                         align_dtype(add_field(add_field(windOn[0][0]['G31_de_n10'], 'elevator_deflection',
+                                         align_dtype(add_field(add_field(windOff[0][0]['G31_d0'], 'dE'
+                                                                        , np.float64, np.nan), 'wind_condition', 'U10', 'windOff'), prototype_dtype, data_normal_configuration2),
+                                         align_dtype(add_field(add_field(windOn[0][0]['G31_de_n10'], 'dE',
                                                                  np.float64, -10), 'wind_condition', 'U10', 'windOn'), prototype_dtype, data_normal_configuration2),
-                                         align_dtype(add_field(add_field(windOff[0][0]['G31_de_n10'], 'elevator_deflection',
-                                                                  np.float64, -10), 'wind_condition', 'U10', 'windOff'), prototype_dtype, data_normal_configuration2),
-                                         align_dtype(add_field(add_field(windOn[0][0]['G31_de_20'], 'elevator_deflection',
+                                         align_dtype(add_field(add_field(windOn[0][0]['G31_de_20'], 'dE',
                                                                  np.float64, 20), 'wind_condition', 'U10', 'windOn'), prototype_dtype, data_normal_configuration2),
-                                         align_dtype(add_field(add_field(windOff[0][0]['G31_de_20'], 'elevator_deflection',
-                                                                  np.float64, 20), 'wind_condition', 'U10', 'windOff'), prototype_dtype, data_normal_configuration2),
-                                         align_dtype(add_field(add_field(windOn[0][0]['G31_den10'], 'elevator_deflection',
+                                         align_dtype(add_field(add_field(windOn[0][0]['G31_den10'], 'dE',
                                                                  np.float64, 10), 'wind_condition', 'U10', 'windOn'), prototype_dtype, data_normal_configuration2),
-                                         align_dtype(add_field(add_field(windOff[0][0]['G31_den10'], 'elevator_deflection',
-                                                                  np.float64, 10), 'wind_condition', 'U10', 'windOff'), prototype_dtype, data_normal_configuration2),
-                                         align_dtype(add_field(add_field(windOn[0][0]['G31_de_n20'], 'elevator_deflection',
-                                                                    np.float64, -20), 'wind_condition', 'U10', 'windOn'), prototype_dtype, data_normal_configuration2),
-                                            align_dtype(add_field(add_field(windOff[0][0]['G31_de_n20'], 'elevator_deflection',
-                                                                    np.float64, -20), 'wind_condition', 'U10', 'windOff'), prototype_dtype, data_normal_configuration2)]
+                                         align_dtype(add_field(add_field(windOn[0][0]['G31_de_n20'], 'dE',
+                                                                    np.float64, -20), 'wind_condition', 'U10', 'windOn'), prototype_dtype, data_normal_configuration2)]
 
 
 
@@ -115,19 +129,18 @@ class loaded_data:
                         arrs_for_concatenation.append(np.ma.masked_array(arrr[field][0][0], mask=np.zeros_like(arrr[field][0][0], dtype=bool)))
                 data_normal_configuration[field][0][0] = np.ma.concatenate(arrs_for_concatenation)
             data_normal_configuration = np.ma.array(data_normal_configuration, mask=np.zeros_like(data_normal_configuration, dtype=bool))
-            data_normal_configuration.explanations = FIELD_EXPLANATIONS
             self.datarr = data_normal_configuration
 
         elif configuration == 'tailoff':
             data_wind_tunnel_test = spio.loadmat(data_file)
             tailOff_windOn = data_wind_tunnel_test['BAL']['windOn'][0][0]['tailOff_beta0_balance'][0][0]
             tailOff_windOff = data_wind_tunnel_test['BAL']['windOff'][0][0]['tailOff_beta0_balance'][0][0]
-            data_tailoff2 = copy.deepcopy(add_field(add_field(tailOff_windOn, 'elevator_deflection',
+            data_tailoff2 = copy.deepcopy(add_field(add_field(tailOff_windOn, 'dE',
                                                                        np.float64, None), 'wind_condition', 'U10', 'windOn'))
             prototype_dtype = data_tailoff2.dtype
             data_tailoff = copy.deepcopy(data_tailoff2)
 
-            data_tailoff_array = [align_dtype(data_tailoff2, prototype_dtype, data_tailoff2), align_dtype(add_field(add_field(tailOff_windOff, 'elevator_deflection'
+            data_tailoff_array = [align_dtype(data_tailoff2, prototype_dtype, data_tailoff2), align_dtype(add_field(add_field(tailOff_windOff, 'dE'
                                                                             , np.float64, None), 'wind_condition', 'U10', 'windOff'), prototype_dtype, data_tailoff2)]
 
 
@@ -141,38 +154,117 @@ class loaded_data:
                             np.ma.masked_array(arrr[field][0][0], mask=np.zeros_like(arrr[field][0][0], dtype=bool)))
                 data_tailoff[field][0][0] = np.ma.concatenate(arrs_for_concatenation)
             data_tailoff = np.ma.array(data_tailoff, mask=np.zeros_like(data_tailoff, dtype=bool))
-            data_tailoff.explanations = FIELD_EXPLANATIONS
             self.datarr = data_tailoff
         elif configuration == 'propoff':
             ## TODO: PROPOFF NEEDS TO BE MATLAB-Corrected still!! Ask prof if it needs to be corrected because it is already in coefficient form. Also 4409 data points is bit large
             data_wind_tunnel_test = spio.loadmat(data_file)
             propOff_windOn = data_wind_tunnel_test['propOff']
-            data_propoff = np.ma.masked_array(add_field(add_field(propOff_windOn, 'elevator_deflection',
-                                                                       np.float64, None), 'wind_condition', 'U10', 'windOn'))
-            data_propoff.explanations = FIELD_EXPLANATIONS
+            data_propoff = np.ma.masked_array(add_field(propOff_windOn, 'wind_condition', 'U10', 'windOn'))
             self.datarr = data_propoff
 
         elif configuration == 'modeloff':
+            # TODO: check whether modeloff needs to be corrected by MATLAB code, and if so, implement that correction
             data_wind_tunnel_test = spio.loadmat(data_file)
             modelOff_windOn = data_wind_tunnel_test['modelOff']
-            data_modeloff = np.ma.masked_array(add_field(add_field(modelOff_windOn, 'elevator_deflection',
+            data_modeloff = np.ma.masked_array(add_field(add_field(modelOff_windOn, 'dE',
                                                                        np.float64, None), 'wind_condition', 'U10', 'windOn'))
-            data_modeloff.explanations = FIELD_EXPLANATIONS
             self.datarr = data_modeloff
+        self.add_test_point_id()
 
-
-
+    def add_test_point_id(self):
+        if 'test_point_id' not in self.datarr.dtype.names:
+            if self.configuration == 'tailoff':
+                self.datarr = add_field(self.datarr, 'test_point_id', 'U25', 'tailoff (from Sinnige)')
+                return
+            elif self.configuration == 'propoff':
+                self.datarr = add_field(self.datarr, 'test_point_id', 'U25', 'propoff (from Sinnige)')
+                return
+            elif self.configuration == 'modeloff':
+                self.datarr = add_field(self.datarr, 'test_point_id', 'U25', 'modeloff (from Sinnige)')
+                return
+            else:
+                self.datarr = add_field(self.datarr, 'test_point_id', 'U25', None)
+        self.datarr['test_point_id'][0][0][0] =  '13'
+        self.datarr['test_point_id'][0][0][1] =  '14'
+        self.datarr['test_point_id'][0][0][2] =  '15'
+        self.datarr['test_point_id'][0][0][3] =  '16'
+        self.datarr['test_point_id'][0][0][4] = '17'
+        self.datarr['test_point_id'][0][0][5] = '18'
+        self.datarr['test_point_id'][0][0][6] = '19'
+        self.datarr['test_point_id'][0][0][7] = 'Noise2'
+        self.datarr['test_point_id'][0][0][8] = 'NoisePO2'
+        self.datarr['test_point_id'][0][0][9] = 'NoiseBG2'
+        self.datarr['test_point_id'][0][0][10] = 'wo3'
+        self.datarr['test_point_id'][0][0][11] = 'wo25'
+        self.datarr['test_point_id'][0][0][12] = 'wo4'
+        self.datarr['test_point_id'][0][0][13] = 'wo11'
+        self.datarr['test_point_id'][0][0][14] = 'woextra'
+        self.datarr['test_point_id'][0][0][15] = 'wo0'
+        self.datarr['test_point_id'][0][0][16] = 'wo5'
+        self.datarr['test_point_id'][0][0][17] = 'wo2'
+        self.datarr['test_point_id'][0][0][18] = 'wo24'
+        self.datarr['test_point_id'][0][0][19] = 'wo1'
+        self.datarr['test_point_id'][0][0][20] = '0'
+        self.datarr['test_point_id'][0][0][21] = '1'
+        self.datarr['test_point_id'][0][0][22] = '2'
+        self.datarr['test_point_id'][0][0][23] = '3'
+        self.datarr['test_point_id'][0][0][24] = '4'
+        self.datarr['test_point_id'][0][0][25] = '5'
+        self.datarr['test_point_id'][0][0][26] = '6'
+        self.datarr['test_point_id'][0][0][27] = '7'
+        self.datarr['test_point_id'][0][0][28] = '8'
+        self.datarr['test_point_id'][0][0][29] = '9'
+        self.datarr['test_point_id'][0][0][30] = '10'
+        self.datarr['test_point_id'][0][0][31] = '11'
+        self.datarr['test_point_id'][0][0][32] = '12'
+        self.datarr['test_point_id'][0][0][33] = 'Noise1'
+        self.datarr['test_point_id'][0][0][34] = 'NoisePO1'
+        self.datarr['test_point_id'][0][0][35] = 'NoiseBG1'
+        self.datarr['test_point_id'][0][0][36] = '32'
+        self.datarr['test_point_id'][0][0][37] = '33'
+        self.datarr['test_point_id'][0][0][38] = '34'
+        self.datarr['test_point_id'][0][0][39] = '35'
+        self.datarr['test_point_id'][0][0][40] = '36'
+        self.datarr['test_point_id'][0][0][41] = '37'
+        self.datarr['test_point_id'][0][0][42] = '38'
+        self.datarr['test_point_id'][0][0][43] = '39'
+        self.datarr['test_point_id'][0][0][44] = 'Noise4'
+        self.datarr['test_point_id'][0][0][45] = 'NoisePO4'
+        self.datarr['test_point_id'][0][0][46] = 'zero_extra'
+        self.datarr['wind_condition'][0][0][46] = 'windOff'
+        self.datarr['test_point_id'][0][0][47] = '21'
+        self.datarr['test_point_id'][0][0][48] = '22'
+        self.datarr['test_point_id'][0][0][49] = '23'
+        self.datarr['test_point_id'][0][0][50] = '24'
+        self.datarr['test_point_id'][0][0][51] = '25'
+        self.datarr['test_point_id'][0][0][52] = '26'
+        self.datarr['test_point_id'][0][0][53] = '27'
+        self.datarr['test_point_id'][0][0][54] = '28'
+        self.datarr['test_point_id'][0][0][55] = '29'
+        self.datarr['test_point_id'][0][0][56] = '30'
+        self.datarr['test_point_id'][0][0][57] = '31'
+        self.datarr['test_point_id'][0][0][58] = 'Noise3'
+        self.datarr['test_point_id'][0][0][59] = 'NoisePO3'
+        self.datarr['test_point_id'][0][0][60] = 'NoiseBG3'
+        self.datarr['test_point_id'][0][0][61] = '40'
+        self.datarr['test_point_id'][0][0][62] = '41'
+        self.datarr['test_point_id'][0][0][63] = '42'
+        self.datarr['test_point_id'][0][0][64] = '43'
+        self.datarr['test_point_id'][0][0][65] = '44'
+        self.datarr['test_point_id'][0][0][66] = '45'
+        self.datarr['test_point_id'][0][0][67] = '46'
+        self.datarr['test_point_id'][0][0][68] = '47'
 
 
     def __getitem__(self, item):
         #retarr = [test_point[item] for test_point in self.datarr]
         retobj = object.__new__(loaded_data)
         retobj.datarr = self.datarr[[item]]
-        retobj.datarr.explanations = FIELD_EXPLANATIONS
+        retobj.explanations = FIELD_EXPLANATIONS
         retobj.data_file = self.data_file
         return  retobj #np.ma.array(retarr).ravel()
 
-    def filter(self, **kwargs):
+    def filter(self, acoustic=False, **kwargs):
         """
         Filter self.datarr based on field conditions and return masked array.
 
@@ -200,7 +292,7 @@ class loaded_data:
         Examples
         --------
         # Filter by exact value
-        filtered = data.filter(wind_condition='windOn', elevator_deflection=20)
+        filtered = data.filter(wind_condition='windOn', dE=20)
 
         # Filter with inequalities
         filtered = data.filter(AoA__gt=5, AoA__lt=15)
@@ -226,7 +318,10 @@ class loaded_data:
                 raise ValueError(f"Field '{field_name}' not found in data. "
                                f"Available fields: {self.datarr.dtype.names}")
 
-            field_data = self.datarr[field_name][0][0]
+            if not acoustic:
+                field_data = self.datarr[field_name][0][0]
+            else:
+                field_data = self.datarr[field_name]
 
             # Apply operator
             if operator == 'eq':
@@ -249,20 +344,28 @@ class loaded_data:
             mask = np.array(mask & condition)
 
         # Return filtered masked array
-        filtarr = copy.deepcopy(self.datarr)
-        for field in self.datarr.dtype.names:
-            if np.shape(self.datarr[field][0][0])[1] != 1:
-                maskt = np.repeat(mask, np.shape(self.datarr[field][0][0])[1], axis=1)
-                filtarr[field] = [[self.datarr[field][0][0][maskt]]]
-            else:
-                filtarr[field] = [[self.datarr[field][0][0][mask]]]
-        filtarr.explanations = FIELD_EXPLANATIONS
+        filtarr = np.ma.array(copy.deepcopy(self.datarr))
+        if not acoustic:
+            for field in self.datarr.dtype.names:
+                if np.shape(self.datarr[field][0][0])[1] != 1:
+                    maskt = np.repeat(mask, np.shape(self.datarr[field][0][0])[1], axis=1)
+                    filtarr[field] = [[self.datarr[field][0][0][maskt]]]
+                else:
+                    filtarr[field] = [[self.datarr[field][0][0][mask]]]
+        else:
+            for field in self.datarr.dtype.names:
+                if np.shape(self.datarr[field])[1] != 1:
+                    maskt = np.repeat(mask, np.shape(self.datarr[field])[1], axis=1)
+                    filtarr[field] = self.datarr[field][maskt]
+                else:
+                    filtarr[field] = self.datarr[field][mask]
         retobj = object.__new__(loaded_data)
         retobj.datarr = filtarr
+        retobj.explanations = FIELD_EXPLANATIONS
         retobj.data_file = self.data_file
         return retobj
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value, acoustic=False):
         """
         Set a field in self.datarr with a numpy array, masked array, or scalar value.
 
@@ -300,7 +403,10 @@ class loaded_data:
         # Check if value is a scalar (int, float, str, bool, etc.)
         if np.isscalar(value):
             # Set all entries to the scalar value
-            self.datarr[key] = value
+            if not acoustic:
+                self.datarr[key][0][0] = np.full_like(self.datarr[key][0][0], value)
+            else:
+                self.datarr[key] = np.full_like(self.datarr[key], value)
             return
 
         # Convert input to numpy array if needed
@@ -314,27 +420,47 @@ class loaded_data:
             if value_arr.shape[0] == 1:
                 value_arr = value_arr.reshape(-1)
             else:
-                raise ValueError(f"Array shape {value_arr.shape} not compatible. "
-                               f"Expected (1, {len(self.datarr)}) or ({len(self.datarr)},)")
+                if not acoustic:
+                    raise ValueError(f"Array shape {value_arr.shape} not compatible. "
+                               f"Expected (1, {len(self.datarr[key][0][0])}) or ({len(self.datarr[key][0][0])},)")
+                else:
+                    raise ValueError(f"Array shape {value_arr.shape} not compatible. "
+                               f"Expected (1, {len(self.datarr[key])}) or ({len(self.datarr[key])},)")
         elif value_arr.ndim != 1:
             raise ValueError(f"Array must be 1D or 2D, got {value_arr.ndim}D")
 
         # Check size matches
-        if len(value_arr) != len(self.datarr):
-            raise ValueError(f"Array size {len(value_arr)} doesn't match data size {len(self.datarr)}. "
-                           f"Expected size ({len(self.datarr)},) or (1, {len(self.datarr)})")
+        if not acoustic:
+            if len(value_arr) != len(self.datarr[key][0][0]):
+                raise ValueError(f"Array size {len(value_arr)} doesn't match data size {len(self.datarr[key][0][0])}. "
+                               f"Expected size ({len(self.datarr[key][0][0])},) or (1, {len(self.datarr[key][0][0])})")
+        else:
+            if len(value_arr) != len(self.datarr[key]):
+                raise ValueError(f"Array size {len(value_arr)} doesn't match data size {len(self.datarr[key])}. "
+                               f"Expected size ({len(self.datarr[key])},) or (1, {len(self.datarr[key])})")
 
         # Set the field
-        self.datarr[key] = value_arr
+        if not acoustic:
+            self.datarr[key][0][0] = value_arr
+        else:
+            self.datarr[key] = value_arr
 
-    def __array__(self):
+    def __array__(self, acoustic=False):
         returner = []
-        for field in self.datarr.dtype.names:
-            if np.shape(self.datarr[field][0][0])[1] != 1:
-                for ind in range(np.shape(self.datarr[field][0][0])[1]):
-                    returner.append(self.datarr[field][0][0][:, ind].reshape(-1, 1))
-            else:
-                returner.append(self.datarr[field][0][0])
+        if not acoustic:
+            for field in self.datarr.dtype.names:
+                if np.shape(self.datarr[field][0][0])[1] != 1:
+                    for ind in range(np.shape(self.datarr[field][0][0])[1]):
+                        returner.append(self.datarr[field][0][0][:, ind].reshape(-1, 1))
+                else:
+                    returner.append(self.datarr[field][0][0])
+        else:
+            for field in self.datarr.dtype.names:
+                if np.shape(self.datarr[field])[1] != 1:
+                    for ind in range(np.shape(self.datarr[field])[1]):
+                        returner.append(self.datarr[field][:, ind].reshape(-1, 1))
+                else:
+                    returner.append(self.datarr[field])
         returner = np.array(returner)
         return returner
 
@@ -347,7 +473,7 @@ class loaded_data:
             for f in fields:
                 val = row[f]
                 try:
-                    explen = self.datarr.explanations[f]
+                    explen = self.explanations[f]
                 except KeyError:
                     explen = 'No description'
                 if np.ma.is_masked(val):
@@ -366,14 +492,166 @@ class loaded_data:
             return f"{self.__class__.__name__}(configuration=unknown)"
 
     @property
-    def values(self):
+    def values(self, acoustic=False):
         # Return plain numeric array (for plotting, math, etc.)
         plain = np.ma.column_stack(
             [self.datarr[name] for name in self.datarr.dtype.names]
         )
         out = np.ma.filled(plain, np.nan)
-        return out[0][0].ravel()
+        if not acoustic:
+            return out[0][0].ravel()
+        else:
+            return out.ravel()
 
+class loaded_acoustic_spectrum_data(loaded_data):
+    # "This will
+    # be done by the lab-exercise supervisor before the lab exercise using a pistonphone (G.R.A.S.
+    # Pistonphone 42AA). Post-processing routines will be made available on Brightspace to process the data
+    # obtained from the inflow microphone. The calibration constant will be included in these files."
+    # TODO: where is this calibration constant, cannot be found in the matlab scripts? Or is it the: 20 micro-Pa reference pressure, [Pa]
+    # NOTE: Propeller noise analysis vs phase only performed for prop-on condition (so not BG and prop off)
+    def __init__(self, data_file, configuration, associated_aerodynamic_data):
+        self.configuration = configuration
+        self.data_file = data_file
+        self.associated_aerodynamic_data = associated_aerodynamic_data
+        if configuration == 'normal_config':
+            data_wind_tunnel_test = spio.loadmat(data_file)
+            acoustic_windOn = data_wind_tunnel_test['MIC']
+            acoustic_data_normal_configuration2 = copy.deepcopy(
+                add_field2(add_field2(acoustic_windOn[:,0][0], 'dE',
+                                    np.float64, 20), 'wind_condition', 'U10', 'windOn'))
+            prototype_dtype = acoustic_data_normal_configuration2.dtype
+            # 0 32, 1 33, 2 34, 3 35, 4 36, 5 37, 6 38, 7 39, 8 40, 9 N1, 10 N2, 11 N3, 12 N4
+            # 0 up to and incl 8: elevator deflection of 20 deg, N1: -10, N2: 0, N3: 10, N4: 20
+            self.dictionary_of_test_point_id_with_array_index = {
+                '32': 0,
+                '33': 1,
+                '34': 2,
+                '35': 3,
+                '36': 4,
+                '37': 5,
+                '38': 6,
+                '39': 7,
+                '40': 8,
+                'Noise1': 9,
+                'Noise2': 10,
+                'Noise3': 11,
+                'Noise4': 12
+            }
+            acoustic_data_normal_configuration_array = [
+                add_field2(add_field2(add_field2(acoustic_windOn[:,0][0], 'dE',
+                                                np.float64, 20), 'wind_condition', 'U10', 'windOn'), 'test_point_id', 'U10', '32'),
+                add_field2(add_field2(add_field2(acoustic_windOn[:,1][0], 'dE',
+                                                np.float64, 20), 'wind_condition', 'U10', 'windOn'), 'test_point_id', 'U10', '33'),
+                add_field2(add_field2(add_field2(acoustic_windOn[:,2][0], 'dE',
+                                                np.float64, 20), 'wind_condition', 'U10', 'windOn'), 'test_point_id', 'U10', '34'),
+                add_field2(add_field2(add_field2(acoustic_windOn[:,3][0], 'dE',
+                                                np.float64, 20), 'wind_condition', 'U10', 'windOn'), 'test_point_id', 'U10', '35'),
+                add_field2(add_field2(add_field2(acoustic_windOn[:,4][0], 'dE',
+                                                np.float64, 20), 'wind_condition', 'U10', 'windOn'), 'test_point_id', 'U10', '36'),
+                add_field2(add_field2(add_field2(acoustic_windOn[:,5][0], 'dE',
+                                                np.float64, 20), 'wind_condition', 'U10', 'windOn'), 'test_point_id', 'U10', '37'),
+                add_field2(add_field2(add_field2(acoustic_windOn[:,6][0], 'dE',
+                                                np.float64, 20), 'wind_condition', 'U10', 'windOn'), 'test_point_id', 'U10', '38'),
+                add_field2(add_field2(add_field2(acoustic_windOn[:,7][0], 'dE',
+                                                np.float64, 20), 'wind_condition', 'U10', 'windOn'), 'test_point_id', 'U10', '39'),
+                add_field2(add_field2(add_field2(acoustic_windOn[:,8][0], 'dE',
+                                                np.float64, 20), 'wind_condition', 'U10', 'windOn'), 'test_point_id', 'U10', '40'),
+                add_field2(add_field2(add_field2(acoustic_windOn[:,9][0], 'dE',
+                                                np.float64, -10), 'wind_condition', 'U10', 'windOn'), 'test_point_id', 'U10', 'Noise1'),
+                add_field2(add_field2(add_field2(acoustic_windOn[:,10][0], 'dE',
+                                                np.float64, 0), 'wind_condition', 'U10', 'windOn'), 'test_point_id', 'U10', 'Noise2'),
+                add_field2(add_field2(add_field2(acoustic_windOn[:,11][0], 'dE',
+                                                np.float64, 10), 'wind_condition', 'U10', 'windOn'), 'test_point_id', 'U10', 'Noise3'),
+                add_field2(add_field2(add_field2(acoustic_windOn[:,12][0], 'dE',
+                                                np.float64, 20), 'wind_condition', 'U10', 'windOn'), 'test_point_id', 'U10', 'Noise4'),
+                ]
+            arrays = [[row[0]] for row in acoustic_data_normal_configuration_array]
+            acoustic_data_normal_configuration = np.ma.array(arrays)
+            self.datarr = acoustic_data_normal_configuration
+            self.explanations = FIELD_EXPLANATIONS
+            self.fill_in_missing_values()
+        elif configuration == 'propoff':
+            data_wind_tunnel_test = spio.loadmat(data_file)
+            acoustic_propOff_windOn = data_wind_tunnel_test['MIC']
+
+
+            acoustic_data_normal_propoff_configuration_array = [
+                add_field2(add_field2(add_field2(acoustic_propOff_windOn[:, 0][0], 'dE',
+                                                 np.float64, 0), 'wind_condition', 'U10', 'windOn'), 'test_point_id',
+                           'U25', 'propoff (from Sinnige)'),
+            ]
+            arrays = [row[0] for row in acoustic_data_normal_propoff_configuration_array]
+            acoustic_data_normal_propoff_configuration = np.ma.array(arrays)
+            self.datarr = acoustic_data_normal_propoff_configuration
+            self.explanations = FIELD_EXPLANATIONS
+
+    def fill_in_missing_values(self):
+        test_points_array = []
+        for test_point_id in  self.datarr['test_point_id']:
+            # Add all information from the loaded_data object with the same test_point_id to the acoustic spectrum data
+            matching_aerodynamic_data = self.associated_aerodynamic_data.filter(test_point_id=test_point_id)
+            datarr_replacement = self.filter(test_point_id=test_point_id).datarr[0].reshape(1, -1)
+            field_to_add = []
+            dtype_to_add = []
+            for field in matching_aerodynamic_data.datarr.dtype.names:
+                if field in self.datarr.dtype.names:
+                    continue
+                else:
+                    field_to_add.append(field)
+            #datarr_replacement2 = rfn.append_fields(datarr_replacement, field_to_add, [np.full(len(datarr_replacement), matching_aerodynamic_data.datarr[field][0][0], dtype=object) for field in field_to_add], dtypes=object, usemask=True)
+            b_extended = rfn.repack_fields(
+                rfn.append_fields(datarr_replacement, field_to_add, np.zeros(len(field_to_add), dtype='object'))).reshape(1, -1)
+            a_extended = rfn.repack_fields(matching_aerodynamic_data.datarr)  # just to be consistent
+            # Now concatenate
+
+            names_a = set(a_extended.dtype.names)
+            names_b = set(b_extended.dtype.names)
+
+            all_names = list(names_a | names_b)
+
+            def align_structured2(arr, all_names):
+                new_dtype = [(name, arr.dtype[name] if name in arr.dtype.names else float) for name in all_names]
+                new_arr = np.zeros(arr.shape, dtype=new_dtype)
+
+                for name in arr.dtype.names:
+                    new_arr[name] = arr[name]
+
+                return new_arr
+
+            a_aligned = align_structured2(a_extended, all_names)
+            b_aligned = align_structured2(b_extended, all_names)
+
+            c = np.concatenate([a_aligned, b_aligned])
+
+            test_points_array.append(copy.deepcopy(c))
+            arrays2 = [[row[0]] for row in test_points_array]
+            self.datarr = np.ma.array(arrays2)
+            self.explanations = FIELD_EXPLANATIONS
+
+            return
+
+
+    def filter(self, **kwargs):
+        return super().filter(acoustic=True, **kwargs)
+
+    def __setitem__(self, key, value):
+        return super().__setitem__(key, value, acoustic=True)
+
+    def __array__(self):
+        return super().__array__(acoustic=True)
+
+
+
+
+
+
+class loaded_acoustic_phase_analysis_data:
+    def __init__(self, data_file, configuration, associated_aerodynamic_data):
+        self.configuration = configuration
+        self.data_file = data_file
+        self.associated_aerodynamic_data = associated_aerodynamic_data
+        #if configuration == 'normal_config':
 
 
 
@@ -387,9 +665,13 @@ if __name__ == "__main__":
     data_tailoff = loaded_data('tailoff.mat', 'tailoff')
     data_propoff = loaded_data('propoff.mat', 'propoff')
     data_modeloff = loaded_data('modeloff.mat', 'modeloff')
-    print(data_tailoff)
+    acoustic_spectrum_data_normal_configuration = loaded_acoustic_spectrum_data('spectrum_analysis_normal_configuration.mat', 'normal_config', data_normal_configuration)
+    acoustic_spectrum_data_propoff = loaded_acoustic_spectrum_data('spectrum_analysis_propoff.mat', 'propoff', data_propoff)
+    phase_analysis_normal_configuration = loaded_acoustic_phase_analysis_data('acoustic_propeller_phase_analysis_normal_condition.mat', 'normal_config', data_normal_configuration)
+
+    print(acoustic_spectrum_data_normal_configuration)
     # Example, data at elevator deflection of 20 degrees
-    elev_20 = data_normal_configuration.filter(elevator_deflection=20, wind_condition='windOn')  # Use 'windOff' for wind-off data
+    elev_20 = data_normal_configuration.filter(dE=20, wind_condition='windOn')  # Use 'windOff' for wind-off data
     aoa = elev_20['AoA'].values
     aos = elev_20['AoS'].values
     CL = elev_20['CL'].values
@@ -419,8 +701,8 @@ if __name__ == "__main__":
     b = elev_20['b'].values
     S = elev_20['S'].values
     c = elev_20['c'].values
-    de = elev_20['elevator_deflection'].values
-    print('Available data fields:', [f'{name}: {elev_20.datarr.explanations.get(name, 'No description')}' for name in elev_20.datarr.dtype.names])
+    de = elev_20['dE'].values
+    print('Available data fields:', [f'{name}: {elev_20.explanations.get(name, 'No description')}' for name in elev_20.datarr.dtype.names])
     fig, ax = plt.subplots(1, 3)
     ax[0].scatter(aoa, CL, label='CL')
     ax[0].set_xlabel('Angle of Attack (degrees)')
