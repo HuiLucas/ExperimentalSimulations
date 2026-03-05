@@ -1,4 +1,4 @@
-from datareader import loaded_data
+from datareader import loaded_data, loaded_acoustic_spectrum_data, loaded_acoustic_phase_analysis_data
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -71,4 +71,28 @@ ax[2].set_xlabel('Lift Coefficient (CL)')
 ax[2].set_ylabel('Drag Coefficient (CD)')
 ax[2].legend()
 plt.tight_layout()
+plt.show()
+
+# Example with acoustic data:
+acoustic_spectrum_data_normal_configuration = loaded_acoustic_spectrum_data('spectrum_analysis_normal_configuration.mat', 'normal_config', data_normal_configuration)
+acoustic_spectrum_data_propoff = loaded_acoustic_spectrum_data('spectrum_analysis_propoff.mat', 'propoff', data_propoff)
+phase_analysis_normal_configuration = loaded_acoustic_phase_analysis_data('acoustic_propeller_phase_analysis_normal_condition.mat', 'normal_config', data_normal_configuration)
+acfilt = acoustic_spectrum_data_normal_configuration.filter(AoA__eq=12.)
+frequencies = acfilt['flab'].values
+SPSL = acfilt['SPSL'].values
+plt.figure()
+plt.scatter([freqplot.squeeze() for freqplot in frequencies], [SPSLplot.squeeze() for SPSLplot in SPSL], s=1)
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('SPL (dB)')
+plt.title('Acoustic Spectrum at AoA = 12 degrees')
+plt.grid()
+plt.show()
+yavg = phase_analysis_normal_configuration.filter(AoA__eq=12.)['yAvg'].values
+phIntp = phase_analysis_normal_configuration.phIntp
+plt.figure()
+plt.plot(np.array([np.repeat(phIntpplot.squeeze().reshape( 1, -1), len(yavg), axis=0) for phIntpplot in phIntp]).reshape(-1,1), np.array([yavgplot.squeeze() for yavgplot in yavg]).reshape(-1,1), ms=1)
+plt.ylabel('yavg (m)')
+plt.xlabel('phIntp (rad)')
+plt.title('Phase Analysis at AoA = 12 degrees')
+plt.grid()
 plt.show()

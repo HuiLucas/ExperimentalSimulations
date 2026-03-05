@@ -710,6 +710,7 @@ class loaded_acoustic_phase_analysis_data(loaded_acoustic_spectrum_data):
         self.associated_aerodynamic_data = associated_aerodynamic_data
         if configuration == 'normal_config':
             data_wind_tunnel_test = spio.loadmat(data_file)
+            self.phIntp = data_wind_tunnel_test['phIntp']
             acoustic_windOn = data_wind_tunnel_test['MIC']
             extra_data_windOn = data_wind_tunnel_test['opp']
             new_test_points_array = []
@@ -761,6 +762,7 @@ class loaded_acoustic_phase_analysis_data(loaded_acoustic_spectrum_data):
             raise NotImplementedError('Phase analysis data has unfortunately not been provided for tailoff configuration')
         else:
             raise NotImplementedError(f"Phase analysis data loading not implemented for configuration '{configuration}'. Are you sure prop is on?")
+
 
 
     def add_test_point_id(self):
@@ -884,6 +886,20 @@ class loaded_acoustic_phase_analysis_data(loaded_acoustic_spectrum_data):
         self.explanations = FIELD_EXPLANATIONS
 
         return
+    def filter(self, **kwargs):
+        returned = super().filter(**kwargs)
+        returned.phIntp = self.phIntp
+        return returned
+
+    def __getitem__(self, item):
+        if item == 'phIntp':
+            return self.phIntp
+        else:
+            returned = super().__getitem__(item)
+            returned.phIntp = self.phIntp
+            return returned
+
+
 
 
 
