@@ -28,7 +28,7 @@ class BoundaryCorrections:
     
     def _get_interpolated_constants(self):
         inty = interpolate_plots()
-        K1 = inty.get_K1(66, self.t_over_c) # Look for which airfoil series are required
+        K1 = inty.get_K1(64, self.t_over_c) # Look for which airfoil series are required
         print(K1)
         K3 = inty.get_K3(self.t_over_c)
         print(K3)
