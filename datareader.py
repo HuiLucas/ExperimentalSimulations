@@ -951,7 +951,7 @@ if __name__ == "__main__":
     S = elev_20['S'].values
     c = elev_20['c'].values
     de = elev_20['dE'].values
-    print('Available data fields:', [f'{name}: {elev_20.explanations.get(name, 'No description')}' for name in elev_20.datarr.dtype.names])
+    print('Available data fields:', [f"{name}: {elev_20.explanations.get(name, 'No description')}" for name in elev_20.datarr.dtype.names])
     fig, ax = plt.subplots(1, 3)
     ax[0].scatter(aoa, CL, label='CL')
     ax[0].set_xlabel('Angle of Attack (degrees)')

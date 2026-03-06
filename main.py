@@ -24,7 +24,7 @@ data_modeloff = loaded_data('modeloff.mat', 'modeloff')
 elev_approx_10 = data_normal_configuration.filter(dE__ge=9.5, dE__le=10.5, test_point_id__ne='46', wind_condition='windOn')  # Use 'windOff' for wind-off data
 
 # Access values
-print('Available data fields:', [f'{name}: {elev_approx_10.explanations.get(name, 'No description')}' for name in elev_approx_10.datarr.dtype.names])
+print('Available data fields:', [f"{name}: {elev_approx_10.explanations.get(name, 'No description')}" for name in elev_approx_10.datarr.dtype.names])
 aoa = elev_approx_10['AoA'].values
 aos = elev_approx_10['AoS'].values
 CL = elev_approx_10['CL'].values
