@@ -6,36 +6,26 @@ class BoundaryCorrections:
     
     def __init__(self, CD_0 = 0, V_unc=0, rho=0, q_unc=0, T=0, alpha_unc=0, CL_unc=0, CD_unc=0, CM_c4_unc=0, CL_alpha=0):
         
-        self.CD_0 = CD_0
-        self.V_unc = V_unc
-        self.rho = rho
-        self.q_unc = q_unc
-        self.T = T
-        self.alpha_unc = alpha_unc
-        self.CL_unc = CL_unc
-        self.CD_unc = CD_unc
-        self.CM_c4_unc = CM_c4_unc
-        self.CL_alpha = CL_alpha
+        self.CD_0 = np.atleast_1d(CD_0)
+        self.V_unc = np.atleast_1d(V_unc)
+        self.rho = np.atleast_1d(rho)
+        self.q_unc = np.atleast_1d(q_unc)
+        self.T = np.atleast_1d(T)
+        self.alpha_unc = np.atleast_1d(alpha_unc)
+        self.CL_unc = np.atleast_1d(CL_unc)
+        self.CD_unc = np.atleast_1d(CD_unc)
+        self.CM_c4_unc = np.atleast_1d(CM_c4_unc)
+        self.CL_alpha = np.atleast_1d(CL_alpha)
         
         self.t_over_c = 15.824 / 100
+        self.span = 1.397
         
         self.V_model = self._calc_model_volume()
-        self.C_tunnel = self._calc_tunnel_cross_section()
-        self.S_model = self._calc_model_reference_area()
+        self.C_tunnel, self.B_tunnel, self.H_tunnel = self._calc_tunnel_cross_section()
+        self.S_model, self.d_fuselage = self._calc_model_reference_area()
         self.S_prop = self._calc_propeller_area()
         self.c_mac, self.l_tail = self._calc_tail_distance()
         self.K1, self.K3, self.tau1, self.tau2, self.delta = self._get_interpolated_constants()
-    
-    def _get_interpolated_constants(self):
-        inty = interpolate_plots()
-        K1 = inty.get_K1(64, self.t_over_c) # Look for which airfoil series are required
-        print(K1)
-        K3 = inty.get_K3(self.t_over_c)
-        print(K3)
-        tau1 = 1
-        tau2 = 1
-        delta = 1
-        return K1, K3, tau1, tau2, delta
     
     @staticmethod
     def _calc_model_volume():
@@ -56,7 +46,7 @@ class BoundaryCorrections:
         triangle_side = 0.3
         A_triangle = 0.5 * triangle_side * triangle_side
         A_total_triangles = 4 * A_triangle
-        return A_tunnel - A_total_triangles
+        return A_tunnel - A_total_triangles, w_tunnel, h_tunnel
     
     @staticmethod
     def _calc_model_reference_area():
@@ -66,7 +56,7 @@ class BoundaryCorrections:
         A_wing = 0.2172
         A_HT = 0.0858
         A_VT = 0.0415
-        return A_fuselage + A_wing + A_HT + A_VT
+        return A_fuselage + A_wing + A_HT + A_VT, d_fuselage
     
     @staticmethod
     def _calc_propeller_area():
@@ -76,8 +66,19 @@ class BoundaryCorrections:
     @staticmethod
     def _calc_tail_distance():
         c_mac = 0.165
-        ratio = 0.5313
-        return c_mac, ratio / c_mac
+        tail_arm = 0.535
+        return c_mac, tail_arm
+    
+    def _get_interpolated_constants(self):
+        inty = interpolate_plots()
+        lamda = self.H_tunnel / self.B_tunnel
+        k = (self.span - self.d_fuselage) / self.B_tunnel
+        K1 = inty.get_K1(airfoil=64, x=self.t_over_c) # Look for which airfoil series are required
+        K3 = inty.get_K3(x=self.t_over_c)
+        tau1 = inty.get_tau1(x=((self.span)/(self.B_tunnel)), b__h=(lamda))
+        tau2 = inty.get_tau2(x=(self.l_tail/self.B_tunnel), lamda=(lamda), k=k)
+        delta = inty.get_delta(x=k, lamda=(lamda))
+        return K1, K3, tau1, tau2, delta
     
     def apply_boundary_corrections(self):
         
