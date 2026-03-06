@@ -18,7 +18,7 @@ if __name__=='__main__':
             CL_unc=elev_approx_10['CL'].values,
             CD_unc=elev_approx_10['CD'].values,
             CM_c4_unc=elev_approx_10['CMpitch25c'].values,
-            )
+            CL_alpha=0.11106)
     aoa = elev_approx_10['AoA'].values
 
 
