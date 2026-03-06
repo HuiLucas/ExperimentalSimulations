@@ -104,7 +104,7 @@ class BoundaryCorrections:
         delta_alpha = self.delta * (self.S_model / self.C_tunnel) * self.CL_unc * (1 + self.tau2)
         delta_alpha_sc = ((self.tau2 * (0.5 * self.c_mac)) / (1 + self.tau2 * (0.5 * self.c_mac))) * delta_alpha
         delta_CD_wing = self.delta * (self.S_model / self.C_tunnel) * self.CL_unc**2
-        delta_CM_c4_wing = (1/8) * delta_alpha_sc * CL_alpha
+        delta_CM_c4_wing = (1/8) * delta_alpha_sc * self.CL_alpha
         
         # Downwash correction
         delta_alpha_tail = self.delta * (self.S_model / self.C_tunnel) * self.CL_unc * (1 + self.tau2 * self.l_tail)
@@ -125,18 +125,6 @@ class BoundaryCorrections:
 if __name__ == "__main__":
     
     # Example with single values
-    bc_single = BoundaryCorrections(CD_0=0.02, V_unc=30.0, rho=1.225)
+    bc = BoundaryCorrections(CD_0=0.02, V_unc=30.0, rho=1.225)
+    bc.apply_boundary_corrections()
     
-    # Example with lists
-    bc_list = BoundaryCorrections(
-        CD_0=[0.02, 0.025, 0.03],
-        V_unc=[30.0, 35.0, 40.0],
-        rho=[1.225, 1.225, 1.225]
-    )
-    
-    # Example with numpy arrays
-    bc_array = BoundaryCorrections(
-        CD_0=np.array([0.02, 0.025, 0.03]),
-        V_unc=np.array([30.0, 35.0, 40.0]),
-        rho=np.array([1.225, 1.225, 1.225])
-    )
