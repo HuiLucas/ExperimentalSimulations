@@ -19,7 +19,18 @@ if __name__=='__main__':
             CD_unc=elev_approx_10['CD'].values,
             CM_c4_unc=elev_approx_10['CMpitch25c'].values,
             CL_alpha=0.11106)
+    
+    alpha_cor, V_cor, q_cor, CL_cor, CD_cor, CM_c4_cor=bc.apply_boundary_corrections()
     aoa = elev_approx_10['AoA'].values
+    V = elev_approx_10['V'].values
+    q = elev_approx_10['q'].values
+    CL = elev_approx_10['CL'].values
+    CD = elev_approx_10['CD'].values
+    CM_c4 = elev_approx_10['CMpitch25c'].values
+    fig=plt.figure()
+    ax=fig.subplots()
+
+
 
 
 
