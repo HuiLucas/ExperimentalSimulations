@@ -2,7 +2,7 @@ import scipy.io as spio
 import numpy as np
 import copy
 from numpy.lib import recfunctions as rfn
-#TODO: acoustic data loader
+
 
 FIELD_EXPLANATIONS = {
             'AoA': 'Angle of Attack in degrees',
