@@ -1,5 +1,9 @@
 import numpy as np
-from interpolate import interpolate_plots
+
+if __name__ == "__main__":
+    from interpolate import interpolate_plots
+else:
+    from boundary_corrections.interpolate import interpolate_plots
 
 
 class BoundaryCorrections:
@@ -119,4 +123,20 @@ class BoundaryCorrections:
 
 
 if __name__ == "__main__":
-    bc = BoundaryCorrections()
+    
+    # Example with single values
+    bc_single = BoundaryCorrections(CD_0=0.02, V_unc=30.0, rho=1.225)
+    
+    # Example with lists
+    bc_list = BoundaryCorrections(
+        CD_0=[0.02, 0.025, 0.03],
+        V_unc=[30.0, 35.0, 40.0],
+        rho=[1.225, 1.225, 1.225]
+    )
+    
+    # Example with numpy arrays
+    bc_array = BoundaryCorrections(
+        CD_0=np.array([0.02, 0.025, 0.03]),
+        V_unc=np.array([30.0, 35.0, 40.0]),
+        rho=np.array([1.225, 1.225, 1.225])
+    )
