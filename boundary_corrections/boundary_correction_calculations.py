@@ -1,9 +1,10 @@
 import numpy as np
+from interpolate import interpolate_plots
 
 
 class BoundaryCorrections:
     
-    def __init__(self, CD_0 = 0, V_unc=0, rho=0, q_unc=q_unc, T=0, alpha_unc=alpha_unc, CL_unc=0, CD_unc=CD_unc, CM_c4_unc=CM_c4_unc, CL_alpha=0):
+    def __init__(self, CD_0 = 0, V_unc=0, rho=0, q_unc=0, T=0, alpha_unc=0, CL_unc=0, CD_unc=0, CM_c4_unc=0, CL_alpha=0):
         
         self.CD_0 = CD_0
         self.V_unc = V_unc
@@ -16,17 +17,21 @@ class BoundaryCorrections:
         self.CM_c4_unc = CM_c4_unc
         self.CL_alpha = CL_alpha
         
+        self.t_over_c = 15.824 / 100
+        
         self.V_model = self._calc_model_volume()
-        self.C_tunnel = self._calself.C_tunnel_cross_section()
+        self.C_tunnel = self._calc_tunnel_cross_section()
         self.S_model = self._calc_model_reference_area()
         self.S_prop = self._calc_propeller_area()
         self.c_mac, self.l_tail = self._calc_tail_distance()
         self.K1, self.K3, self.tau1, self.tau2, self.delta = self._get_interpolated_constants()
     
-    @staticmethod
-    def _get_interpolated_constants():
-        K1 = 1
-        K3 = 1
+    def _get_interpolated_constants(self):
+        inty = interpolate_plots()
+        K1 = inty.get_K1(66, self.t_over_c) # Look for which airfoil series are required
+        print(K1)
+        K3 = inty.get_K3(self.t_over_c)
+        print(K3)
         tau1 = 1
         tau2 = 1
         delta = 1
@@ -110,3 +115,7 @@ class BoundaryCorrections:
         CM_c4_cor = self.CM_c4_unc * (1 + epsilon)**(-2) + delta_CD_wing + delta_CM_c4_tail
         
         return alpha_cor, V_cor, q_cor, CL_cor, CD_cor, CM_c4_cor
+
+
+if __name__ == "__main__":
+    bc = BoundaryCorrections()

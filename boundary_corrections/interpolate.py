@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 
 class interpolate_plots():
     def __init__(self):
-        self.data_K1_K3=np.loadtxt('K1_K3plot.txt',skiprows=2)
-        self.data_tau1=np.loadtxt('tau1.txt',skiprows=2)
+        self.data_K1_K3=np.loadtxt('boundary_corrections/K1_K3plot.txt',skiprows=2)
+        self.data_tau1=np.loadtxt('boundary_corrections/tau1.txt',skiprows=2)
 
     def interpolate(self,x,y,x0):
         ind=np.where((x-x0)>0)[0][0]
