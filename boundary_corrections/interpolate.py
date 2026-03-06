@@ -108,7 +108,6 @@ class interpolate_plots():
             return y_first
         if outl_cond:
             return y_first
-        print(y_first)
 
 
 
@@ -143,7 +142,6 @@ class interpolate_plots():
                 y_geus_lst.append(y_geus)
                 i=i+1
             y_second=self.interpolate(k_lst_new,y_geus_lst,k)
-        print(y_second)
 
         "interpolates two ys for omegas"
         y=y_second+(y_first-y_second)/(lamda_first-lamda_second)*(lamda-lamda_second)
