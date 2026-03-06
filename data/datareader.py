@@ -2,6 +2,7 @@ import scipy.io as spio
 import numpy as np
 import copy
 from numpy.lib import recfunctions as rfn
+import matplotlib.pyplot as plt
 
 
 FIELD_EXPLANATIONS = {
@@ -698,11 +699,6 @@ class loaded_acoustic_spectrum_data(loaded_data):
         else:
             return out.ravel()
 
-
-
-
-
-
 class loaded_acoustic_phase_analysis_data(loaded_acoustic_spectrum_data):
     def __init__(self, data_file, configuration, associated_aerodynamic_data):
         self.configuration = configuration
@@ -900,58 +896,56 @@ class loaded_acoustic_phase_analysis_data(loaded_acoustic_spectrum_data):
             return returned
 
 
-
-
-
-
-
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    data_normal_configuration = loaded_data('normal_config.mat', 'normal_config')
-    np.shape(data_normal_configuration)
-    #print(data_normal_configuration)
-    data_tailoff = loaded_data('tailoff.mat', 'tailoff')
-    data_propoff = loaded_data('propoff.mat', 'propoff')
-    data_modeloff = loaded_data('modeloff.mat', 'modeloff')
-    acoustic_spectrum_data_normal_configuration = loaded_acoustic_spectrum_data('spectrum_analysis_normal_configuration.mat', 'normal_config', data_normal_configuration)
-    acoustic_spectrum_data_propoff = loaded_acoustic_spectrum_data('spectrum_analysis_propoff.mat', 'propoff', data_propoff)
-    phase_analysis_normal_configuration = loaded_acoustic_phase_analysis_data('acoustic_propeller_phase_analysis_normal_condition.mat', 'normal_config', data_normal_configuration)
-    acfilt = acoustic_spectrum_data_normal_configuration.filter(AoA__eq=12.)
-    print(acoustic_spectrum_data_normal_configuration)
-    # Example, data at elevator deflection of 20 degrees
-    elev_20 = data_normal_configuration.filter(dE=20, wind_condition='windOn')  # Use 'windOff' for wind-off data
-    np.shape(elev_20)
-    aoa = elev_20['AoA'].values
-    aos = elev_20['AoS'].values
-    CL = elev_20['CL'].values
-    CD = elev_20['CD'].values
-    CYaw = elev_20['CYaw'].values
-    CMroll = elev_20['CMroll'].values
-    CMpitch = elev_20['CMpitch'].values
-    CMpitch25c = elev_20['CMpitch25c'].values
-    CMyaw = elev_20['CMyaw'].values
-    rho = elev_20['rho'].values
-    V = elev_20['V'].values
-    pInf = elev_20['pInf'].values
-    q = elev_20['q'].values
-    T = elev_20['temp'].values
-    nu = elev_20['nu'].values
-    Re = elev_20['Re'].values
-    J1 = elev_20['J_M1'].values
-    J2 = elev_20['J_M2'].values
-    nrotor1 = elev_20['rpsM1'].values
-    nrotor2 = elev_20['rpsM2'].values
-    current_motor1 = elev_20['iM1'].values
-    current_motor2 = elev_20['iM2'].values
-    temp_motor1 = elev_20['tM1'].values
-    temp_motor2 = elev_20['tM2'].values
-    voltage_motor1 = elev_20['vM1'].values
-    voltage_motor2 = elev_20['vM2'].values
-    b = elev_20['b'].values
-    S = elev_20['S'].values
-    c = elev_20['c'].values
-    de = elev_20['dE'].values
-    print('Available data fields:', [f"{name}: {elev_20.explanations.get(name, 'No description')}" for name in elev_20.datarr.dtype.names])
+    # Load the data
+    data_normal_configuration = loaded_data('data/normal_config.mat', 'normal_config')
+    data_tailoff = loaded_data('data/tailoff.mat', 'tailoff')
+    data_propoff = loaded_data('data/propoff.mat', 'propoff')
+    data_modeloff = loaded_data('data/modeloff.mat', 'modeloff')
+
+    # print(data_normal_configuration) # print the data
+    # print(np.shape(data_normal_configuration)) # perform numpy operations
+    # print(np.shape(data_normal_configuration['AoA']))
+
+    #modify data:
+    #data_normal_configuration['AoA'] =  1.0  # This will set all AoA values to 1 degree
+    # data_normal_configuration['AoA'] = data_normal_configuration['AoA'].values + 1.0  # This will add 1 degree to all AoA values
+    
+    # Data at elevator deflection 9.5 and 10.5 degrees at wind-on condition, and remove test point 46 (if needed, this is just an example)
+    elev_approx_10 = data_normal_configuration.filter(dE__ge=9.5, dE__le=10.5, test_point_id__ne='46', wind_condition='windOn')  # Use 'windOff' for wind-off data
+    #print('Available data fields:', [f"{name}: {elev_approx_10.explanations.get(name, 'No description')}" for name in elev_approx_10.datarr.dtype.names])
+    aoa = elev_approx_10['AoA'].values
+    aos = elev_approx_10['AoS'].values
+    CL = elev_approx_10['CL'].values
+    CD = elev_approx_10['CD'].values
+    CYaw = elev_approx_10['CYaw'].values
+    CMroll = elev_approx_10['CMroll'].values
+    CMpitch = elev_approx_10['CMpitch'].values
+    CMpitch25c = elev_approx_10['CMpitch25c'].values
+    CMyaw = elev_approx_10['CMyaw'].values
+    rho = elev_approx_10['rho'].values
+    V = elev_approx_10['V'].values
+    pInf = elev_approx_10['pInf'].values
+    q = elev_approx_10['q'].values
+    T = elev_approx_10['temp'].values
+    nu = elev_approx_10['nu'].values
+    Re = elev_approx_10['Re'].values
+    J1 = elev_approx_10['J_M1'].values
+    J2 = elev_approx_10['J_M2'].values
+    nrotor1 = elev_approx_10['rpsM1'].values
+    nrotor2 = elev_approx_10['rpsM2'].values
+    current_motor1 = elev_approx_10['iM1'].values
+    current_motor2 = elev_approx_10['iM2'].values
+    temp_motor1 = elev_approx_10['tM1'].values
+    temp_motor2 = elev_approx_10['tM2'].values
+    voltage_motor1 = elev_approx_10['vM1'].values
+    voltage_motor2 = elev_approx_10['vM2'].values
+    b = elev_approx_10['b'].values
+    S = elev_approx_10['S'].values
+    c = elev_approx_10['c'].values
+    de = elev_approx_10['dE'].values
+    
+    # Plotting CL, CD, and the drag polar (warning, all kinds of thrust settings are mixed, does not give sensible results)
     fig, ax = plt.subplots(1, 3)
     ax[0].scatter(aoa, CL, label='CL')
     ax[0].set_xlabel('Angle of Attack (degrees)')
@@ -966,4 +960,28 @@ if __name__ == "__main__":
     ax[2].set_ylabel('Drag Coefficient (CD)')
     ax[2].legend()
     plt.tight_layout()
+    
+    # Example with acoustic data:
+    acoustic_spectrum_data_normal_configuration = loaded_acoustic_spectrum_data('data/spectrum_analysis_normal_configuration.mat', 'normal_config', data_normal_configuration)
+    acoustic_spectrum_data_propoff = loaded_acoustic_spectrum_data('data/spectrum_analysis_propoff.mat', 'propoff', data_propoff)
+    phase_analysis_normal_configuration = loaded_acoustic_phase_analysis_data('data/acoustic_propeller_phase_analysis_normal_condition.mat', 'normal_config', data_normal_configuration)
+    acfilt = acoustic_spectrum_data_normal_configuration.filter(AoA__eq=12.)
+    frequencies = acfilt['flab'].values
+    SPSL = acfilt['SPSL'].values
+    plt.figure()
+    plt.scatter([freqplot.squeeze() for freqplot in frequencies], [SPSLplot.squeeze() for SPSLplot in SPSL], s=1)
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('SPL (dB)')
+    plt.title('Acoustic Spectrum at AoA = 12 degrees')
+    plt.grid()
+    yavg = phase_analysis_normal_configuration.filter(AoA__eq=12.)['yAvg'].values
+    phIntp = phase_analysis_normal_configuration.phIntp
+    
+    plt.figure()
+    plt.plot(np.array([np.repeat(phIntpplot.squeeze().reshape( 1, -1), len(yavg), axis=0) for phIntpplot in phIntp]).reshape(-1,1), np.array([yavgplot.squeeze() for yavgplot in yavg]).reshape(-1,1), ms=1)
+    plt.ylabel('yavg (m)')
+    plt.xlabel('phIntp (rad)')
+    plt.title('Phase Analysis at AoA = 12 degrees')
+    plt.grid()
+    
     plt.show()
