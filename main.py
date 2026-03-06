@@ -1,5 +1,7 @@
 from data.datareader import loaded_data 
 from boundary_corrections.boundary_correction_calculations import BoundaryCorrections
+import matplotlib.pyplot as plt
+
 
 if __name__=='__main__':
     data_normal_configuration = loaded_data('data/normal_config.mat', 'normal_config')
@@ -28,7 +30,7 @@ if __name__=='__main__':
     CD = elev_approx_10['CD'].values
     CM_c4 = elev_approx_10['CMpitch25c'].values
     fig=plt.figure()
-    ax=fig.subplots()
+    ax=fig.subplots(1,3)
 
 
 
