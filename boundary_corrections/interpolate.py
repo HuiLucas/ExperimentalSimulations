@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 
 class interpolate_plots():
     def __init__(self):
-        self.data_K1_K3=np.loadtxt('K1_K3plot.txt',skiprows=2)
-        self.data_tau1=np.loadtxt('tau1.txt',skiprows=2)
-        self.data_tau2=np.loadtxt('tau2.txt',skiprows=2)
-        self.data_delta=np.loadtxt('delta.txt',skiprows=1)
+        self.data_K1_K3=np.loadtxt('boundary_corrections/K1_K3plot.txt',skiprows=2)
+        self.data_tau1=np.loadtxt('boundary_corrections/tau1.txt',skiprows=2)
+        self.data_tau2=np.loadtxt('boundary_corrections/tau2.txt',skiprows=2)
+        self.data_delta=np.loadtxt('boundary_corrections/delta.txt',skiprows=1)
 
     def interpolate(self,x,y,x0):
         ind=np.where((x-x0)>0)[0][0]
@@ -169,17 +169,17 @@ class interpolate_plots():
     
 if __name__=='__main__':
     plots=interpolate_plots()
-# data=np.loadtxt('delta.txt',skiprows=1)
+# data=np.loadtxt('boundary_corrections/delta.txt',skiprows=1)
 
 
-# with open("delta.txt", "w") as f:
+# with open("boundary_corrections/delta.txt", "w") as f:
 # #   for i in range(7):
 #     f.write(f'x \t 1.0\t 0.9\t 0.8\t 0.7\t 0.6\t 0.5\n')
 #     for i in range(10):
 #         f.write(f'{data[i,0]} \t {data[i,1]}\t {data[i,3]}\t {data[i,5]}\t {data[i,6]}\t {data[i,4]}\t {data[i,2]}\n')
 
 
-# data=np.loadtxt('K1_K3plot.txt',skiprows=2)
+# data=np.loadtxt('boundary_corrections/K1_K3plot.txt',skiprows=2)
 # # y011=interpolate(data[:,0],data[:,2],0.11)
 # # print(y011)
 # plots=interpolate_plots()
@@ -198,7 +198,7 @@ if __name__=='__main__':
 # ax.grid()
 # plt.show()
 
-# data=np.loadtxt('tau1.txt',skiprows=2)
+# data=np.loadtxt('boundary_corrections/tau1.txt',skiprows=2)
 # # y011=interpolate(data[:,0],data[:,2],0.11)
 # # print(y011)
 # plots=interpolate_plots()
@@ -218,7 +218,7 @@ if __name__=='__main__':
 # plt.show()
 
     
-    # data=np.loadtxt('tau2.txt',skiprows=2)
+    # data=np.loadtxt('boundary_corrections/tau2.txt',skiprows=2)
     # # y011=interpolate(data[:,0],data[:,2],0.11)
     # # print(y011)
     # plots=interpolate_plots()
@@ -243,7 +243,7 @@ if __name__=='__main__':
     # plt.show()
 
 
-    data=np.loadtxt('delta.txt',skiprows=1)
+    data=np.loadtxt('boundary_corrections/delta.txt',skiprows=1)
     # y011=interpolate(data[:,0],data[:,2],0.11)
     # print(y011)
     plots=interpolate_plots()
