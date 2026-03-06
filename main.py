@@ -31,6 +31,16 @@ if __name__=='__main__':
     CM_c4 = elev_approx_10['CMpitch25c'].values
     fig=plt.figure()
     ax=fig.subplots(1,3)
+    ax[0].plot(aoa,CL,label='uncorrected')
+    ax[0].plot(alpha_cor,CL_cor='corrected')
+    plt.legend()
+
+    for axs in ax:
+        ax.grid()
+    plt.show()
+
+
+    
 
 
 

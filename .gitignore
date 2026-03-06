@@ -2,3 +2,8 @@ __pycache__/datareader.cpython-311.pyc
 data/__pycache__/datareader.cpython-311.pyc
 boundary_corrections/__pycache__/boundary_correction_calculations.cpython-311
 boundary_corrections/__pycache__/interpolate.cpython-311
+main.py
+.gitignore
+data/__pycache__/datareader.cpython-312.pyc
+boundary_corrections/__pycache__/boundary_correction_calculations.cpython-312.pyc
+boundary_corrections/__pycache__/interpolate.cpython-312.pyc
