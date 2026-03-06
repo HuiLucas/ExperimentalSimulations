@@ -7,7 +7,7 @@ class interpolate_plots():
         self.data_K1_K3=np.loadtxt('K1_K3plot.txt',skiprows=2)
         self.data_tau1=np.loadtxt('tau1.txt',skiprows=2)
         self.data_tau2=np.loadtxt('tau2.txt',skiprows=2)
-        self.data_delta=np.loadtxt('newdelta.txt',skiprows=1)
+        self.data_delta=np.loadtxt('delta.txt',skiprows=1)
 
     def interpolate(self,x,y,x0):
         ind=np.where((x-x0)>0)[0][0]
@@ -174,7 +174,7 @@ if __name__=='__main__':
 # data=np.loadtxt('delta.txt',skiprows=1)
 
 
-# with open("newdelta.txt", "w") as f:
+# with open("delta.txt", "w") as f:
 # #   for i in range(7):
 #     f.write(f'x \t 1.0\t 0.9\t 0.8\t 0.7\t 0.6\t 0.5\n')
 #     for i in range(10):
@@ -245,7 +245,7 @@ if __name__=='__main__':
     # plt.show()
 
 
-    data=np.loadtxt('newdelta.txt',skiprows=1)
+    data=np.loadtxt('delta.txt',skiprows=1)
     # y011=interpolate(data[:,0],data[:,2],0.11)
     # print(y011)
     plots=interpolate_plots()
