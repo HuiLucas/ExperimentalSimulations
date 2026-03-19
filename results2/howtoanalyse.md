@@ -25,3 +25,5 @@ accurately capture the data.
 This effect is strongest on large negative dE (i.e. page 121 is more destabilizing than page 119). Watching at our data, you can see a small destabilizing
 dCM_c4 only for the case dE=-20deg, for the other dE's the relation is very noisy. Overall, the propeller has only a small effect on the total Cm_c4 vs AoA of the aircraft, so 
 the reverse thrust at our aircraft model with the given i_t is not very destabilizing.
+
+For an explenation of the effects that are occuring, see the Gemini summary of the papers: https://gemini.google.com/share/d6fdb9543528. This can be used to physically explain the effects that are occuring.
