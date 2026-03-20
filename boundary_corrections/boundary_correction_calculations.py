@@ -8,7 +8,7 @@ else:
 
 class BoundaryCorrections:
     
-    def __init__(self, CD_0 = 0, V_unc=0, rho=0, q_unc=0, T=0, alpha_unc=0, CL_unc=0, CD_unc=0, CM_c4_unc=0, CL_alpha=0):
+    def __init__(self, CD_0 = 0, V_unc=0, rho=0, q_unc=0, T=0, alpha_unc=0, CL_unc=0, CD_unc=0, CM_c4_unc=0, CL_alpha=0, test_point_ids=None):
         
         self.CD_0 = np.atleast_1d(CD_0)
         self.V_unc = np.atleast_1d(V_unc)
@@ -20,6 +20,7 @@ class BoundaryCorrections:
         self.CD_unc = np.atleast_1d(CD_unc)
         self.CM_c4_unc = np.atleast_1d(CM_c4_unc)
         self.CL_alpha = np.atleast_1d(CL_alpha)
+        self.test_point_ids = np.atleast_1d(test_point_ids)
         
         self.t_over_c = 15.824 / 100
         self.span = 1.397
@@ -112,6 +113,7 @@ class BoundaryCorrections:
         
         # Total corrections
         epsilon = epsilon_sb + epsilon_wb + epsilon_ss
+        self.epsilon = epsilon
         alpha_cor = self.alpha_unc + delta_alpha
         V_cor = self.V_unc * (1 + epsilon)
         q_cor = self.q_unc * (1 + epsilon)**2

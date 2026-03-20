@@ -97,10 +97,10 @@ class loaded_data:
         self.data_file = data_file
         self.explanations = FIELD_EXPLANATIONS
         if configuration == 'normal_config':
-            data_wind_tunnel_test = spio.loadmat(data_file)
-            windOn = data_wind_tunnel_test['BAL']['windOn'][0][0]
-            windOff = data_wind_tunnel_test['BAL']['windOff'][0][0]
-            config = data_wind_tunnel_test['BAL']['config'][0][0]
+            self.data_wind_tunnel_test = spio.loadmat(data_file)
+            windOn = self.data_wind_tunnel_test['BAL']['windOn'][0][0]
+            windOff = self.data_wind_tunnel_test['BAL']['windOff'][0][0]
+            config = self.data_wind_tunnel_test['BAL']['config'][0][0]
             data_normal_configuration2 = copy.deepcopy(add_field(add_field(windOn[0][0]['G31_d0'], 'dE',
                                                               np.float64, 0), 'wind_condition', 'U10', 'windOn'))
             prototype_dtype = data_normal_configuration2.dtype
@@ -133,9 +133,9 @@ class loaded_data:
             self.datarr = data_normal_configuration
 
         elif configuration == 'tailoff':
-            data_wind_tunnel_test = spio.loadmat(data_file)
-            tailOff_windOn = data_wind_tunnel_test['BAL']['windOn'][0][0]['tailOff_beta0_balance'][0][0]
-            tailOff_windOff = data_wind_tunnel_test['BAL']['windOff'][0][0]['tailOff_beta0_balance'][0][0]
+            self.data_wind_tunnel_test = spio.loadmat(data_file)
+            tailOff_windOn = self.data_wind_tunnel_test['BAL']['windOn'][0][0]['tailOff_beta0_balance'][0][0]
+            tailOff_windOff = self.data_wind_tunnel_test['BAL']['windOff'][0][0]['tailOff_beta0_balance'][0][0]
             data_tailoff2 = copy.deepcopy(add_field(add_field(tailOff_windOn, 'dE',
                                                                        np.float64, None), 'wind_condition', 'U10', 'windOn'))
             prototype_dtype = data_tailoff2.dtype
@@ -158,15 +158,15 @@ class loaded_data:
             self.datarr = data_tailoff
         elif configuration == 'propoff':
             ## TODO: PROPOFF NEEDS TO BE MATLAB-Corrected still!! Ask prof if it needs to be corrected because it is already in coefficient form. Also 4409 data points is bit large
-            data_wind_tunnel_test = spio.loadmat(data_file)
-            propOff_windOn = data_wind_tunnel_test['propOff']
+            self.data_wind_tunnel_test = spio.loadmat(data_file)
+            propOff_windOn = self.data_wind_tunnel_test['propOff']
             data_propoff = np.ma.masked_array(add_field(propOff_windOn, 'wind_condition', 'U10', 'windOn'))
             self.datarr = data_propoff
 
         elif configuration == 'modeloff':
             # TODO: check whether modeloff needs to be corrected by MATLAB code, and if so, implement that correction
-            data_wind_tunnel_test = spio.loadmat(data_file)
-            modelOff_windOn = data_wind_tunnel_test['modelOff']
+            self.data_wind_tunnel_test = spio.loadmat(data_file)
+            modelOff_windOn = self.data_wind_tunnel_test['modelOff']
             data_modeloff = np.ma.masked_array(add_field(add_field(modelOff_windOn, 'dE',
                                                                        np.float64, None), 'wind_condition', 'U10', 'windOn'))
             self.datarr = data_modeloff
@@ -257,6 +257,8 @@ class loaded_data:
         self.datarr['test_point_id'][0][0][68] = '47'
 
 
+
+
     def __getitem__(self, item, acoustic=False):
         #retarr = [test_point[item] for test_point in self.datarr]
         if not acoustic:
@@ -266,6 +268,7 @@ class loaded_data:
         retobj.datarr = self.datarr[[item]]
         retobj.explanations = FIELD_EXPLANATIONS
         retobj.data_file = self.data_file
+        retobj.data_wind_tunnel_test = self.data_wind_tunnel_test
         return  retobj #np.ma.array(retarr).ravel()
 
     def filter(self, acoustic=False, **kwargs):
@@ -372,6 +375,7 @@ class loaded_data:
         retobj.datarr = filtarr
         retobj.explanations = FIELD_EXPLANATIONS
         retobj.data_file = self.data_file
+        retobj.data_wind_tunnel_test = self.data_wind_tunnel_test
         return retobj
 
     def __setitem__(self, key, value, acoustic=False):
@@ -524,8 +528,8 @@ class loaded_acoustic_spectrum_data(loaded_data):
         self.data_file = data_file
         self.associated_aerodynamic_data = associated_aerodynamic_data
         if configuration == 'normal_config':
-            data_wind_tunnel_test = spio.loadmat(data_file)
-            acoustic_windOn = data_wind_tunnel_test['MIC']
+            self.data_wind_tunnel_test = spio.loadmat(data_file)
+            acoustic_windOn = self.data_wind_tunnel_test['MIC']
             acoustic_data_normal_configuration2 = copy.deepcopy(
                 add_field2(add_field2(acoustic_windOn[:,0][0], 'dE',
                                     np.float64, 20), 'wind_condition', 'U10', 'windOn'))
@@ -581,8 +585,8 @@ class loaded_acoustic_spectrum_data(loaded_data):
             self.explanations = FIELD_EXPLANATIONS
             self.fill_in_missing_values()
         elif configuration == 'propoff':
-            data_wind_tunnel_test = spio.loadmat(data_file)
-            acoustic_propOff_windOn = data_wind_tunnel_test['MIC']
+            self.data_wind_tunnel_test = spio.loadmat(data_file)
+            acoustic_propOff_windOn = self.data_wind_tunnel_test['MIC']
 
 
             acoustic_data_normal_propoff_configuration_array = [
@@ -705,10 +709,10 @@ class loaded_acoustic_phase_analysis_data(loaded_acoustic_spectrum_data):
         self.data_file = data_file
         self.associated_aerodynamic_data = associated_aerodynamic_data
         if configuration == 'normal_config':
-            data_wind_tunnel_test = spio.loadmat(data_file)
-            self.phIntp = data_wind_tunnel_test['phIntp']
-            acoustic_windOn = data_wind_tunnel_test['MIC']
-            extra_data_windOn = data_wind_tunnel_test['opp']
+            self.data_wind_tunnel_test = spio.loadmat(data_file)
+            self.phIntp = self.data_wind_tunnel_test['phIntp']
+            acoustic_windOn = self.data_wind_tunnel_test['MIC']
+            extra_data_windOn = self.data_wind_tunnel_test['opp']
             new_test_points_array = []
             for test_point_acoustic, test_point_extra in zip(acoustic_windOn.squeeze(), extra_data_windOn.squeeze()):
                 old_dtype = test_point_acoustic.dtype
