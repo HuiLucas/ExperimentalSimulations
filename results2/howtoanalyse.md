@@ -11,6 +11,7 @@ Investigaton on tail-mounted positive thrust propeller, can maybe be extrapolate
 (You don't have to read the reports, just look at the figures)
 
 Notes:
+- 10 m\s is absent in some data because it needs prop-off data to calculate it, and unfortunately there is no 10 m/s prop-off data
 - eta_recuperation (efficiency of energy recuperation) is what is needed when C_P is negative (so energy is removed from
 the flow such that it slows down).
 In this case eta_recuperation is expected to be between 0 and 1.

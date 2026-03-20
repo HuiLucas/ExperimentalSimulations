@@ -11,7 +11,7 @@ from motor_efficiency_calculator import get_motor_efficiency
 
 
 if __name__=='__main__':
-    data_normal_configuration = loaded_data('data/normal_config.mat', 'normal_config')
+    data_normal_configuration = loaded_data('data/normal_config.mat', 'normal_config').filter(test_point_id__ne='zero_extra')
     data_tailoff = loaded_data('data/tailoff.mat', 'tailoff')
     data_propoff = loaded_data('data/propoff.mat', 'propoff').filter(AoS__le=0.0005, AoS__ge=-0.0005)
     data_modeloff = loaded_data('data/modeloff.mat', 'modeloff')
