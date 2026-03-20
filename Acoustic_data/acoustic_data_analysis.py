@@ -14,12 +14,13 @@ acoustic_spectrum_data_normal_configuration = loaded_acoustic_spectrum_data('dat
 acoustic_spectrum_data_propoff = loaded_acoustic_spectrum_data('data/spectrum_analysis_propoff.mat', 'propoff', data_propoff)
 phase_analysis_normal_configuration = loaded_acoustic_phase_analysis_data('data/acoustic_propeller_phase_analysis_normal_condition.mat', 'normal_config', data_normal_configuration)
 acfilt = acoustic_spectrum_data_normal_configuration.filter(AoA__eq=12.)
-frequencies = acfilt['flab'].values
-SPSL = acfilt['SPSL'].values
+frequencies = acfilt['flab'].values[:acfilt['N'].values[0][0][0]]
+SPSL = acfilt['SPSL'].values[:acfilt['N'].values[0][0][0]]
 plt.figure()
 plt.scatter([freqplot.squeeze() for freqplot in frequencies], [SPSLplot.squeeze() for SPSLplot in SPSL], s=1)
 plt.xlabel('Frequency (Hz)')
 plt.ylabel('SPL (dB)')
+plt.semilogx()
 plt.title('Acoustic Spectrum at AoA = 12 degrees')
 plt.grid()
 yavg = phase_analysis_normal_configuration.filter(AoA__eq=12.)['yAvg'].values
