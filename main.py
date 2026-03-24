@@ -78,7 +78,7 @@ if __name__=='__main__':
             CL_uncor = elev_chosen['CFZ'].values
             CBX_uncor = elev_chosen['CFX'].values # balance ref system
             CD_0 = 0.07
-            CL_alpha = 0.11106
+            CL_alpha = 0.111463
             #control_power =
             prop_electric_power = (elev_chosen['iM1'].values * elev_chosen['vM1'].values + elev_chosen['iM2'].values * elev_chosen['vM2'].values) / (rho*(0.5*(elev_chosen['rpsM1'].values + elev_chosen['rpsM2'].values))**3 * D**5)
             if plotting == 'C_P_shaft' or plotting == 'C_P_shaft_with_10_mps' or plotting == 'eta_recuperation' or plotting == 'eta_recuperation_with_10_mps' or plotting == 'eta_propulsive' or plotting == 'eta_propulsive_with_10_mps':
@@ -103,7 +103,7 @@ if __name__=='__main__':
                     V_unc = V_propoff_uncor,
                     rho = rho[0],
                     q_unc = 0.5 * rho[0] * V_propoff_uncor**2,
-                    T = Temp[0],
+                    T = 0, # propoff
                     alpha_unc = AoA_propoff_uncor,
                     CL_unc = CL_propoff_uncor,
                     CD_unc = CD_propoff_uncor,
@@ -160,7 +160,7 @@ if __name__=='__main__':
                     V_unc=V_uncor,
                     rho=rho,
                     q_unc=q_uncor,
-                    T=Temp,
+                    T=C_T_uncor * ((0.5*(elev_chosen['rpsM1'].values + elev_chosen['rpsM2'].values))**2 * rho * D**4) ,
                     alpha_unc=AoA_uncor,
                     CL_unc=CL_uncor,
                     CD_unc=CD_uncor,
