@@ -8,10 +8,12 @@ matplotlib.use('TkAgg')
 import matplotlib.colors as colors
 import matplotlib.cm as cm
 from motor_efficiency_calculator import get_motor_efficiency
+import pandas as pd
+import pingouin as pg
 
 
 if __name__=='__main__':
-    data_normal_configuration = loaded_data('data/normal_config.mat', 'normal_config').filter(test_point_id__ne='zero_extra')
+    data_normal_configuration = loaded_data('data/normal_config.mat', 'normal_config').filter(test_point_id__ne='zero_extra', wind_condition='windOn').filter(test_point_id__ne='NoiseBG1').filter(test_point_id__ne='NoiseBG2').filter(test_point_id__ne='NoiseBG3')
     data_tailoff = loaded_data('data/tailoff.mat', 'tailoff')
     data_propoff = loaded_data('data/propoff.mat', 'propoff').filter(AoS__le=0.0005, AoS__ge=-0.0005)
     data_modeloff = loaded_data('data/modeloff.mat', 'modeloff')
@@ -24,6 +26,8 @@ if __name__=='__main__':
         'C_P_shaft': {'fit': False, 'y_label': r'$C_P$ (shaft)', 'y_data': 'prop_shaft_power', 'with_10_mps': False, 'x_data': 'J_cor', 'x_label': 'J', 'c_data': 'AoA_cor', 'c_label': 'Angle of Attack (degrees)'},
         'C_D': {'fit': False, 'y_label': r'$C_D$', 'y_data': 'CD_cor', 'with_10_mps': False, 'x_data': 'J_cor', 'x_label': 'J', 'c_data': 'AoA_cor', 'c_label': 'Angle of Attack (degrees)'},
         'C_L': {'fit': False, 'y_label': r'$C_L$', 'y_data': 'CL_cor', 'with_10_mps': False, 'x_data': 'J_cor', 'x_label': 'J', 'c_data': 'AoA_cor', 'c_label': 'Angle of Attack (degrees)'},
+        'DC_L':{'fit': False, 'y_label': r'$\Delta C_L = C_L - C_{L,propoff}$', 'y_data': 'DCL_cor', 'with_10_mps': False, 'x_data': 'J_cor', 'x_label': 'J', 'c_data': 'AoA_cor', 'c_label': 'Angle of Attack (degrees)'},
+        'DC_D': {'fit': False, 'y_label': r'$\Delta C_D = C_D - C_{D,propoff}$', 'y_data': 'DCD_cor', 'with_10_mps': False, 'x_data': 'J_cor', 'x_label': 'J', 'c_data': 'AoA_cor', 'c_label': 'Angle of Attack (degrees)'},
         'C_mc4': {'fit': False, 'y_label': r'$C_{m,c/4}$', 'y_data': 'C_m_c4_cor', 'with_10_mps': False, 'x_data': 'J_cor', 'x_label': 'J', 'c_data': 'AoA_cor', 'c_label': 'Angle of Attack (degrees)'},
         'C_T': {'fit': False, 'y_label': r'$C_T$', 'y_data': 'C_T_cor', 'with_10_mps': False, 'x_data': 'J_cor', 'x_label': 'J', 'c_data': 'AoA_cor', 'c_label': 'Angle of Attack (degrees)'},
         'C_T_with_fit': {'fit': 'C_T', 'y_label': r'$C_T$', 'y_data': 'C_T_cor', 'with_10_mps': False, 'x_data': 'J_cor', 'x_label': 'J', 'c_data': 'AoA_cor', 'c_label': 'Angle of Attack (degrees)'},
@@ -40,7 +44,8 @@ if __name__=='__main__':
     #elev_approx_10 = data_normal_configuration.filter(dE__ge=9.5, dE__le=10.5, test_point_id__ne='46', wind_condition='windOn')  # Use 'windOff' for wind-off data
     #propoff_basi = data_propoff.filter(dE__ge=9.5, dE__le=10.5,V__ge=29.5,V__le=30.5,dR__ge=-0.5, dR__le=0.5,AoS__ge=-0.0005, AoS__le=0.0005,wind_condition='windOn')  # Use 'windOff' for wind-off data
     #print(propoff_basi['AoS'].values)
-    corrected_data = {}
+    #df_pd = data_normal_configuration.to_dataframe()
+    dat_correl = {'CL': [], 'DCL': [], 'CD': [], 'DCD': [], 'CT': [], 'Cmc4': [], 'DCmc4': [], 'AoA': [], 'J': [], 'dE': []}
     dE_list = data_normal_configuration['dE'].values.compressed()
     dE_list = dE_list[~np.isnan(dE_list)]
     dE_list = np.unique(dE_list)
@@ -52,9 +57,9 @@ if __name__=='__main__':
         scatters = []
         for indd, dE in enumerate(dE_list):
             if not list_of_plots[plotting]['with_10_mps']:
-                elev_chosen = data_normal_configuration.filter(dE__ge=dE-0.5, dE__le=dE+0.5, wind_condition='windOn', test_point_id__ne='NoiseBG1' ,V__ge=10.5).filter(test_point_id__ne='NoiseBG2').filter(test_point_id__ne='NoiseBG3')
+                elev_chosen = data_normal_configuration.filter(dE__ge=dE-0.5, dE__le=dE+0.5 ,V__ge=10.5)
             else:
-                elev_chosen = data_normal_configuration.filter(dE__ge=dE-0.5, dE__le=dE+0.5, test_point_id__ne='NoiseBG1', wind_condition='windOn').filter(test_point_id__ne='NoiseBG2').filter(test_point_id__ne='NoiseBG3')
+                elev_chosen = data_normal_configuration.filter(dE__ge=dE-0.5, dE__le=dE+0.5)
             V_uncor = elev_chosen['V'].values
 
 
@@ -141,7 +146,7 @@ if __name__=='__main__':
             V_propoff_uncor = np.array(V_propoff_uncor)
             C_m_c4_uncor = elev_chosen['CMpitch25c'].values
 
-            C_T_uncor = (S/D**2) * (J_uncor**2/(2*np.cos(np.deg2rad(AoA_uncor)))) *(CBX_propoff_uncor*V_propoff_uncor**2/( V_uncor**2) - CBX_uncor)  # During iteration change order of operations so that uncorr values are used when needed
+            C_T_uncor = (S/D**2) * (J_uncor**2/(2*np.cos(np.deg2rad(AoA_uncor)))) *(CBX_propoff_uncor*V_propoff_uncor**2/( V_uncor**2) - CBX_uncor)
             propulsive_power_uncor = C_T_uncor * J_uncor
             if plotting == 'C_P_shaft' or plotting == 'C_P_shaft_with_10_mps' or plotting == 'eta_recuperation' or plotting == 'eta_recuperation_with_10_mps' or plotting == 'eta_propulsive' or plotting == 'eta_propulsive_with_10_mps':
                 propulsive_efficiency_uncor = propulsive_power_uncor / prop_shaft_power
@@ -171,7 +176,9 @@ if __name__=='__main__':
             if cdat_min > np.min(plotcdata):
                 cdat_min = np.min(plotcdata)
             DCm_c4_cor = C_m_c4_cor - CM_c4_propoff
-            C_T_cor = (J_cor**2/(2*np.cos(np.deg2rad(AoA_cor)))) * (S/D**2) * (CD_cor - CBX_uncor*((V_uncor**2)/(V_cor**2)))
+            DCL_cor = CL_cor - CL_propoff
+            DCD_cor = CD_cor - CBX_propoff
+            C_T_cor = C_T_uncor * (V_uncor**2)/(V_cor**2) #(J_cor**2/(2*np.cos(np.deg2rad(AoA_cor)))) * (S/D**2) * (CD_cor - CBX_uncor*((V_uncor**2)/(V_cor**2)))
             propulsive_power_cor = C_T_cor * J_cor
             if plotting == 'C_P_shaft' or plotting == 'C_P_shaft_with_10_mps' or plotting == 'eta_recuperation' or plotting == 'eta_recuperation_with_10_mps' or plotting == 'eta_propulsive' or plotting == 'eta_propulsive_with_10_mps':
                 propulsive_efficiency_cor = propulsive_power_cor / prop_shaft_power
@@ -200,10 +207,20 @@ if __name__=='__main__':
                 ax[indd].plot(J_linspace, -0.0051*J_linspace**4 + 0.0959*J_linspace**3 - 0.5888*J_linspace**2 + 1.0065*J_linspace - 0.1353, label='fit', ls='-', marker='o', markersize=1)
 
             ax[indd].set_title(f"dE = {dE} degrees")
-            ax[indd].set_xlabel(f"{list_of_plots[plotting]['x_label']} (corrected)")
-            fig.supylabel(f"{list_of_plots[plotting]['y_label']} (corrected)")
+            ax[indd].set_xlabel(f"{list_of_plots[plotting]['x_label']} (cor)")
+            fig.supylabel(f"{list_of_plots[plotting]['y_label']} (cor)")
             ax[indd].grid()
             print(indd)
+            dat_correl['CL'].extend(CL_cor.reshape(-1))
+            dat_correl['DCL'].extend(DCL_cor.reshape(-1))
+            dat_correl['CD'].extend(CD_cor.reshape(-1))
+            dat_correl['DCD'].extend(DCD_cor.reshape(-1))
+            dat_correl['CT'].extend(C_T_cor.reshape(-1))
+            dat_correl['Cmc4'].extend(C_m_c4_cor.reshape(-1))
+            dat_correl['DCmc4'].extend(DCm_c4_cor.reshape(-1))
+            dat_correl['AoA'].extend(AoA_cor)
+            dat_correl['J'].extend(J_cor.reshape(-1))
+            dat_correl['dE'].extend([dE] * len(J_cor.reshape(-1)))
 
 
 
@@ -242,6 +259,8 @@ if __name__=='__main__':
             #         CL_alpha=0.11106,  #from prop off data but needs to be refined to make exact,
             #         test_point_ids=prop_off_comparision_list['test_point_id'],
             #         )
+        df_pd = pd.DataFrame(dat_correl)[['DCD', 'AoA', 'J', 'dE']]
+        print(df_pd.pcorr())
         cmap = plt.cm.viridis
         norm = colors.Normalize(vmin=cdat_min, vmax=cdat_max)
         for scc in scatters:

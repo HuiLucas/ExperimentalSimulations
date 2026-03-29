@@ -3,6 +3,7 @@ import numpy as np
 import copy
 from numpy.lib import recfunctions as rfn
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 FIELD_EXPLANATIONS = {
@@ -476,6 +477,23 @@ class loaded_data:
                     returner.append(self.datarr[field])
         returner = np.array(returner)
         return returner
+
+    #pd dataframe:
+    def to_dataframe(self, acoustic=False):
+        if not acoustic:
+            data_dict = {field: self.datarr[field][0][0].ravel() for field in self.datarr.dtype.names if np.shape(self.datarr[field][0][0])[1] == 1}
+            for field in self.datarr.dtype.names:
+                if np.shape(self.datarr[field][0][0])[1] != 1:
+                    for ind in range(np.shape(self.datarr[field][0][0])[1]):
+                        data_dict[f"{field}_{ind}"] = self.datarr[field][0][0][:, ind].ravel()
+        else:
+            data_dict = {field: self.datarr[field].ravel() for field in self.datarr.dtype.names if np.shape(self.datarr[field])[1] == 1}
+            for field in self.datarr.dtype.names:
+                if self.datarr[field].ndim != 1:
+                    for ind in range(np.shape(self.datarr[field])[1]):
+                        data_dict[f"{field}_{ind}"] = self.datarr[field][:, ind].ravel()
+        df = pd.DataFrame(data_dict)
+        return df
 
     def __str__(self):
         fields = self.datarr.dtype.names
