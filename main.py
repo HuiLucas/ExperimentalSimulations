@@ -10,6 +10,9 @@ import matplotlib.cm as cm
 from motor_efficiency_calculator import get_motor_efficiency
 import pandas as pd
 import pingouin as pg
+from scipy.optimize import least_squares
+from matplotlib.colors import SymLogNorm
+
 
 
 if __name__=='__main__':
@@ -27,6 +30,7 @@ if __name__=='__main__':
         'C_D': {'fit': False, 'y_label': r'$C_D$', 'y_data': 'CD_cor', 'with_10_mps': False, 'x_data': 'J_cor', 'x_label': 'J', 'c_data': 'AoA_cor', 'c_label': 'Angle of Attack (degrees)'},
         'C_L': {'fit': False, 'y_label': r'$C_L$', 'y_data': 'CL_cor', 'with_10_mps': False, 'x_data': 'J_cor', 'x_label': 'J', 'c_data': 'AoA_cor', 'c_label': 'Angle of Attack (degrees)'},
         'DC_L':{'fit': False, 'y_label': r'$\Delta C_L = C_L - C_{L,propoff}$', 'y_data': 'DCL_cor', 'with_10_mps': False, 'x_data': 'J_cor', 'x_label': 'J', 'c_data': 'AoA_cor', 'c_label': 'Angle of Attack (degrees)'},
+        'DC_L_vs_AoA':{'fit': False, 'y_label': r'$\Delta C_L = C_L - C_{L,propoff}$', 'y_data': 'DCL_cor', 'with_10_mps': False, 'x_data': 'AoA_cor', 'x_label': 'Angle of Attack (degrees)', 'c_data': 'J_cor', 'c_label': 'J (corrected)'},
         'DC_D': {'fit': False, 'y_label': r'$\Delta C_D = C_D - C_{D,propoff}$', 'y_data': 'DCD_cor', 'with_10_mps': False, 'x_data': 'J_cor', 'x_label': 'J', 'c_data': 'AoA_cor', 'c_label': 'Angle of Attack (degrees)'},
         'C_mc4': {'fit': False, 'y_label': r'$C_{m,c/4}$', 'y_data': 'C_m_c4_cor', 'with_10_mps': False, 'x_data': 'J_cor', 'x_label': 'J', 'c_data': 'AoA_cor', 'c_label': 'Angle of Attack (degrees)'},
         'C_T': {'fit': False, 'y_label': r'$C_T$', 'y_data': 'C_T_cor', 'with_10_mps': False, 'x_data': 'J_cor', 'x_label': 'J', 'c_data': 'AoA_cor', 'c_label': 'Angle of Attack (degrees)'},
@@ -41,11 +45,13 @@ if __name__=='__main__':
         'CL_vs_AoA': {'fit': {'ydat':'CL_propoff', 'xdat': 'AoA_propoff'}, 'y_label': r'$C_L$', 'y_data': 'CL_cor', 'with_10_mps': False, 'x_data': 'AoA_cor', 'x_label': r'Angle of Attack (degrees)', 'c_data': 'J_cor', 'c_label': 'J (corrected)'},
     }
 
+
+
     #elev_approx_10 = data_normal_configuration.filter(dE__ge=9.5, dE__le=10.5, test_point_id__ne='46', wind_condition='windOn')  # Use 'windOff' for wind-off data
     #propoff_basi = data_propoff.filter(dE__ge=9.5, dE__le=10.5,V__ge=29.5,V__le=30.5,dR__ge=-0.5, dR__le=0.5,AoS__ge=-0.0005, AoS__le=0.0005,wind_condition='windOn')  # Use 'windOff' for wind-off data
     #print(propoff_basi['AoS'].values)
     #df_pd = data_normal_configuration.to_dataframe()
-    dat_correl = {'CL': [], 'DCL': [], 'CD': [], 'DCD': [], 'CT': [], 'Cmc4': [], 'DCmc4': [], 'AoA': [], 'J': [], 'dE': []}
+    dat_correl = {'CL': [], 'DCL': [], 'CD': [], 'DCD': [], 'CT': [], 'Cmc4': [], 'DCmc4': [], 'AoA': [], 'J': [], 'dE': [], 'CL_propoff': [], 'CD_propoff': [], 'CM_c4_propoff': []}
     dE_list = data_normal_configuration['dE'].values.compressed()
     dE_list = dE_list[~np.isnan(dE_list)]
     dE_list = np.unique(dE_list)
@@ -221,6 +227,9 @@ if __name__=='__main__':
             dat_correl['AoA'].extend(AoA_cor)
             dat_correl['J'].extend(J_cor.reshape(-1))
             dat_correl['dE'].extend([dE] * len(J_cor.reshape(-1)))
+            dat_correl['CL_propoff'].extend(np.array(CL_propoff).reshape(-1))
+            dat_correl['CD_propoff'].extend(np.array(CBX_propoff).reshape(-1))
+            dat_correl['CM_c4_propoff'].extend(np.array(CM_c4_propoff).reshape(-1))
 
 
 
@@ -259,7 +268,7 @@ if __name__=='__main__':
             #         CL_alpha=0.11106,  #from prop off data but needs to be refined to make exact,
             #         test_point_ids=prop_off_comparision_list['test_point_id'],
             #         )
-        df_pd = pd.DataFrame(dat_correl)[['DCD', 'AoA', 'J', 'dE']]
+        df_pd = pd.DataFrame(dat_correl)[['CD', 'AoA', 'J', 'dE']]
         print(df_pd.pcorr())
         cmap = plt.cm.viridis
         norm = colors.Normalize(vmin=cdat_min, vmax=cdat_max)
@@ -272,6 +281,135 @@ if __name__=='__main__':
         #fig.tight_layout()
         plt.savefig(f"results2/{plotting}.png")
         plt.close(fig)
+
+
+    def aerodynamic_residuals(params, data):
+        (b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, alpha_L0, alpha_M0, kk, CL_alpha_propoff, alpha_L0_propoff, CL_delta_propoff, Cm_c4_alpha_propoff, alpha_M0_propoff, Cm_c4_delta_propoff, CD_0_propoff) = params
+
+        # Unpack the measured flight/wind-tunnel data
+        J = np.asarray(data['J'], dtype=float)
+        alpha = np.asarray(data['AoA'], dtype=float)
+        delta_e = np.asarray(data['dE'], dtype=float)
+
+        CT_meas = np.asarray(data['CT'], dtype=float)
+        CL_meas = np.asarray(data['CL'], dtype=float)
+        CD_meas = np.asarray(data['CD'], dtype=float)
+        Cm_meas = np.asarray(data['Cmc4'], dtype=float)
+
+        CL_propoff = np.asarray(data['CL_propoff'], dtype=float)
+        Cm_propoff = np.asarray(data['CM_c4_propoff'], dtype=float)
+        CD_propoff = np.asarray(data['CD_propoff'], dtype=float)
+
+
+
+        # Evaluate the mathematical model using current parameter guesses
+        CT_pred = b0 + b1 * J
+
+        CL_pred = CL_propoff + b2 * alpha + b3 * J * alpha - b3 * alpha_L0 * J - b2 * alpha_L0
+
+        CD_pred = (CD_propoff - kk* CL_propoff ** 2) + b4 + b5 * J + (b6 + b7 * J) * CL_meas ** 2
+
+        Cm_pred = Cm_propoff + b10 * alpha + b11 * J * alpha - b11 * alpha_M0 * J + \
+                  b8 * delta_e + b9 * J * delta_e - b10 * alpha_M0
+
+        CL_propoff_pred = CL_alpha_propoff * (alpha - alpha_L0_propoff) + CL_delta_propoff * delta_e
+        Cm_propoff_pred = Cm_c4_alpha_propoff * (alpha - alpha_M0_propoff) + Cm_c4_delta_propoff * delta_e
+        CD_propoff_pred = CD_0_propoff + CL_propoff_pred**2 * kk
+
+        # Calculate residuals (Difference between measured data and model prediction)
+        res_CT = CT_meas - CT_pred
+        res_CL = CL_meas - CL_pred
+        res_CD = CD_meas - CD_pred
+        res_Cm = Cm_meas - Cm_pred
+        res_CL_propoff = CL_propoff - CL_propoff_pred
+        res_Cm_propoff = Cm_propoff - Cm_propoff_pred
+        res_CD_propoff = CD_propoff - CD_propoff_pred
+
+        # Optional: You can apply weighting here if CD is much smaller than CL, e.g.:
+        # res_CD = res_CD * 10
+
+        # Combine all residuals into a single 1D array for the solver
+        return np.concatenate((res_CT, res_CL, res_CD, res_Cm, res_CL_propoff, res_Cm_propoff, res_CD_propoff))
+
+    initial_guess = np.zeros(22)
+
+    # Run the optimization
+    # Using the Levenberg-Marquardt algorithm ('lm') which is standard for NLLS
+    result = least_squares(
+        aerodynamic_residuals,
+        initial_guess,
+        args=(dat_correl,),
+        method='lm'
+    )
+
+    param_names = [f"Beta_{i}" for i in range(12)] + ["Alpha_L=0", "Alpha_M=0", "k", "CL_alpha_propoff", "Alpha_L0_propoff", "CL_delta_propoff", "Cm_c4_alpha_propoff", "Alpha_M0_propoff", "Cm_c4_delta_propoff", "CD_0_propoff"]
+
+    print("--- Optimized Parameters ---")
+    for name, value in zip(param_names, result.x):
+        print(f"{name:<10}: {value:>10.5f}")
+
+    # Trimmed condition analysis
+    def delta_e_for_trim(alpha, J, params):
+        ddd = ( params[18] * (alpha - params[19])   + params[10] * alpha + params[11] * J * alpha - params[11] * params[13] * J  +  - params[10] * params[13])/ (-(params[20] + params[9] * J + params[8]) )
+        return ddd
+
+    def trim_drag_lift(alpha, J, params):
+        delta_e = delta_e_for_trim(alpha, J, params)
+        CL_propoff = params[15] * (alpha - params[16]) + params[17] * delta_e
+        CL = CL_propoff + params[2] * alpha + params[3] * J * alpha - params[3] * params[12] * J - params[2] * params[12]
+        CD = params[21] + params[4] + params[5] * J + (params[6] + params[7] * J) * CL ** 2
+        return CD, CL
+
+    def delta_e_for_trim_propoff(alpha, params):
+        ddd = -params[18] * (alpha - params[19]) / params[20]
+        return ddd
+    # one figure with all three plots dE vs aoa with color J, CL vs CD with color J and CL vs AoA with color J
+    alpha_linspace = np.linspace(-5, 14, 100)
+    J_linspace = np.linspace(0, 8, 100)
+    alpha_grid, J_grid = np.meshgrid(alpha_linspace, J_linspace)
+    CD_grid, CL_grid = trim_drag_lift(alpha_grid, J_grid, result.x)
+    fig = plt.figure(figsize=(15, 5))
+    ax = fig.subplots(1, 3)
+    contour1 = ax[0].contourf(alpha_grid, J_grid, CD_grid, levels=50, cmap='viridis')
+    ax[0].contour(alpha_grid, J_grid, CD_grid, levels=20, colors='k', linewidths=0.5)
+    fig.colorbar(contour1, ax=ax[0], label='CD at Trim')
+    ax[0].set_title('CD at Trim Condition')
+    ax[0].set_xlabel('Angle of Attack (degrees)')
+    ax[0].set_ylabel('Advance Ratio (J)')
+    contour2 = ax[1].contourf(alpha_grid, J_grid, CL_grid, levels=50, cmap='viridis')
+    ax[1].contour(alpha_grid, J_grid, CL_grid, levels=20, colors='k', linewidths=0.5)
+    fig.colorbar(contour2, ax=ax[1], label='CL at Trim')
+    ax[1].set_title('CL at Trim Condition')
+    ax[1].set_xlabel('Angle of Attack (degrees)')
+    ax[1].set_ylabel('Advance Ratio (J)')
+    Z = CL_grid/CD_grid
+    ax[2].contourf(alpha_grid, J_grid, Z, levels=50, cmap='viridis')
+    ax[2].contour(alpha_grid, J_grid, Z, levels=20, colors='k', linewidths=0.5)
+    fig.colorbar(contour2, ax=ax[2], label='CL/CD at Trim')
+    ax[2].set_title('CL/CD at Trim Condition')
+    ax[2].set_xlabel('Angle of Attack (degrees)')
+    ax[2].set_ylabel('Advance Ratio (J)')
+    plt.tight_layout()
+    plt.savefig("results2/trim_conditions.png")
+    plt.close()
+    # delta_e vs alpha for different J values
+    fig = plt.figure(figsize=(10, 5))
+    ax = fig.subplots(1, 1)
+    delta_e_propoff = delta_e_for_trim_propoff(alpha_linspace, result.x)
+    for J_val in [0, 4, 8]:
+        delta_e_grid = delta_e_for_trim(alpha_linspace, J_val, result.x)
+        ax.plot(alpha_linspace, delta_e_grid, label=f'J={J_val}')
+    ax.plot(alpha_linspace, delta_e_propoff, label=f'Prop-Off', ls='--', color='k')
+    ax.set_title('Elevator Deflection for Trim Condition')
+    ax.set_xlabel('Angle of Attack (degrees)')
+    ax.set_ylabel('Elevator Deflection (degrees)')
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig("results2/delta_e_trim.png")
+    plt.close()
+
+
+
 #     alpha_cor, V_cor, q_cor, CL_cor, CD_cor, CM_c4_cor=bc.apply_boundary_corrections()
 #     aoa = elev_approx_10['AoA'].values
 #     V = elev_approx_10['V'].values
