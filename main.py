@@ -56,7 +56,7 @@ if __name__=='__main__':
     dE_list = dE_list[~np.isnan(dE_list)]
     dE_list = np.unique(dE_list)
     for plotting in list_of_plots.keys(): #list_of_plots.keys()
-        fig = plt.figure(figsize=(15, 5))
+        fig = plt.figure(figsize=(18, 5), constrained_layout=True)
         ax = fig.subplots(1, len(dE_list), sharey=True)
         cdat_min = 0
         cdat_max = 0
@@ -276,7 +276,7 @@ if __name__=='__main__':
             scc.set_cmap(cmap)
             scc.set_norm(norm)
         sm = cm.ScalarMappable(norm=norm, cmap=cmap)
-        cbar = fig.colorbar(sm, ax=ax, pad=0.15,orientation='horizontal', location='bottom')
+        cbar = fig.colorbar(sm, ax=ax, pad=0.01, location='right', fraction=0.025,)
         cbar.set_label(f"{list_of_plots[plotting]['c_label']}")
         #fig.tight_layout()
         plt.savefig(f"results2/{plotting}.png")
@@ -393,13 +393,13 @@ if __name__=='__main__':
     plt.savefig("results2/trim_conditions.png")
     plt.close()
     # delta_e vs alpha for different J values
-    fig = plt.figure(figsize=(10, 5))
+    fig = plt.figure(figsize=(5, 5))
     ax = fig.subplots(1, 1)
     delta_e_propoff = delta_e_for_trim_propoff(alpha_linspace, result.x)
     for J_val in [0, 4, 8]:
         delta_e_grid = delta_e_for_trim(alpha_linspace, J_val, result.x)
-        ax.plot(alpha_linspace, delta_e_grid, label=f'J={J_val}')
-    ax.plot(alpha_linspace, delta_e_propoff, label=f'Prop-Off', ls='--', color='k')
+        ax.plot(alpha_linspace, delta_e_grid, label=f'J={J_val}', linewidth=1)
+    ax.plot(alpha_linspace, delta_e_propoff, label=f'Prop-Off', ls='--', color='k', linewidth=1)
     ax.set_title('Elevator Deflection for Trim Condition')
     ax.set_xlabel('Angle of Attack (degrees)')
     ax.set_ylabel('Elevator Deflection (degrees)')
